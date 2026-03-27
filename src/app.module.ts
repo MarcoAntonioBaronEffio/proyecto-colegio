@@ -1,9 +1,31 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Module } from '@nestjs/common'; 
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AlumnoModule } from './alumno/alumno.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { SchoolYearsModule } from './school-years/school-years.module';
+import { GradesModule } from './grades/grades.module';
+import { SectionModule } from './section/section.module'; 
+import { StudentModule } from './student/student.module';
+import { SchoolModule } from './school/school.module'; 
+import { ClassroomModule } from './classroom/classroom.module';
+import { User } from './entities/users.entity';
+import { Rol } from './entities/rol.entity';
+import { Student } from './entities/student.entity';
+import { Administrator } from './entities/administrator.entity';
+import { Teacher } from './entities/teacher.entity';
+import { Guardian } from './entities/guardian.entity';
+import { School } from './entities/school.entity';
+import { SchoolYear } from './entities/school-year.entity';
+import { Grade } from './entities/grade.entity';
+import { Section } from './entities/section.entity';
+import { Classroom } from './entities/classroom.entity';
+import { EnrollmentService } from './enrollment/enrollment.service';
+import { EnrollmentModule } from './enrollment/enrollment.module';
+
+
 
 @Module({
   //imports: aquí definimos qué módulos externos va a usar tu aplicación NestJS en la raíz.
@@ -15,7 +37,8 @@ import { AlumnoModule } from './alumno/alumno.module';
        //en cada módulo.
        //👉🏼 En otras palabras: con esto puedes usar ConfigService en cualquier parte de tu app para leer variables de entorno como
        //DB_HOST, DB_PORT,etc.
-      isGlobal: true,     
+      isGlobal: true,  
+      envFilePath: '.env'   
     }),
     //TypeOrmModule.forRootAsync -> Configura la conexión a la base de datos con TypeORM de forma asíncrona.
     //¿Por qué asíncrona? Porque muchas veces necesitas leer valores del ".env" (host, usuario, contraseña) antes de conectarte.
@@ -36,6 +59,10 @@ import { AlumnoModule } from './alumno/alumno.module';
       useFactory : (config: ConfigService) => ({
         //Lo que devuelve ({type: 'postgres, ...}) es lo que TypeORM usará para conectarse a tu base de datos.
         type: 'postgres', //Aquí indicas qué tipo de base de datos usas. En este caso: PostgreSQL.
+        // ❌ Si estás trabajando con base local (no con Railway, Supabase, Render, etc) , elimina la "url" y deja los campos
+        //por separado.
+        //url : process.env.DATABASE_URL,
+        //✅ Conexión usando variables individuales del .env.
         //Con estas líneas estás leyendo valores del archivo ".env"
         //Cada config.get<T>('...') toma ese valor y lo pasa a la configuración de TypeORM.
         host: config.get<string>('DB_HOST'),         //  Dirección del servidor de BD (ej: localhost, 127.0.0.1, etc.)
@@ -46,20 +73,25 @@ import { AlumnoModule } from './alumno/alumno.module';
 
         //autoLoadEntities: true -> Normalmente tendrías que registrar manualmente cada Entity en el módulo.
         //Entonces, esto carga automáticamente todas las entidades que definamos ((clases con @Entity) que representan
-        //tablas en la BD)
+        //tablas en la BD)e
         autoLoadEntities: true, 
+        entities: [User, Rol, Administrator,  Student, Teacher, Guardian, School, SchoolYear, Grade, Section, Classroom ],
         //synchronize: true -> ⚠️ Solo en desarrollo
         //Hace que TypeORM cree/modifique las tablas automáticamente basándose en nuestras entidades.
         //En producción se recomienda usar migraciones para más control.
         synchronize: true,
       })
     }),
-    AlumnoModule
+    RolesModule,//✅ Registramos el módulo de roles para que Nest lo cargue al iniciar.
+    AlumnoModule, 
+    UsersModule, 
+    AuthModule, 
+    SchoolYearsModule, 
+    GradesModule, 
+    SectionModule, StudentModule, SchoolModule, ClassroomModule, EnrollmentModule,
     //✅ En resumen: Este bloque configura NestJS para leer variables del ".env" y con ellas conectarte a PostgreSQL usando TypeORM,
     //cargando automáticamente las entidades y, en modo desarrollo, creando las tablas 
-  ],
-  controllers: [AppController],
-  providers: [AppService],
+  ]
 })
 export class AppModule {}
 

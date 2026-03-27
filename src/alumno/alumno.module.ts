@@ -32,7 +32,7 @@ import { Alumno } from 'src/entities/alumno.entity';
     //.   - .save() -> guardar o actualizar un alumno
     //.   - .delete() -> eliminar un alumno
     // Tú no creaste manualmente un repositorio, lo genera TypeORM en base a tu entidad.
-    // Este reppositorio será el intermediario entre tu Servicio(AlumnoService) y la BD real (PostgreSQL), tú no tienes que 
+    // Este repositorio será el intermediario entre tu Servicio(AlumnoService) y la BD real (PostgreSQL), tú no tienes que 
     //implementar manualmente los métodos CRUD como en Jetpack Compose.
     // ✅ Resumen:
     // - Entidad(Alumno) = la clase que representa tu tabla.

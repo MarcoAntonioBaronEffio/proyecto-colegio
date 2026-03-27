@@ -1,0 +1,51 @@
+-- 📌 Script para crear la tabla roles
+CREATE TABLE roles (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,  -- Identificador único (autoincremental)
+    nombre VARCHAR(50) NOT NULL UNIQUE, -- Nombre del rol (ej: apoderado, docente, auxiliar, adminstrador)
+    descripcion TEXT, -- Explicación corta de cada rol (opcional)
+    activo BOOLEAN DEFAULT TRUE,  -- Para activar/desactivar el rol sin borrarlo
+    created_at TIMESTAMPTZ DEFAULT NOW(), -- Fecha de creación (por defecto la actual)
+    updated_at TIMESTAMPTZ DEFAULT NOW() -- Última actualización
+)
+
+-- 📌 Insertar los 3 roles iniciales
+INSERT INTO roles (nombre, descripcion) 
+VALUES
+('APODERADO', 'El apoderado puede ver datos del alumno y asistencias.'),
+('DOCENTE', 'El docente registra la asistencia'),
+('AUXILIAR', 'El auxiliar registra apoderados, docentes y ayuda en la administración'),
+('ADMINISTRADOR', 'Tiene control total del sistema y configuraciones')
+ON CONFLICT (nombre) DO NOTHING; --Evita duplicados si ya existen
+
+-- 👉🏼 ON CONFLICT (nombre) DO NOTHING
+-- Este pedacito le dice a PostgreSQL: Si ya existe un registro con este mismo "nombre", ignora el insert y no hagas nada.
+-- Así evitas duplicados sileciosamente.
+
+-- 📌 Borrar una tabla normal
+DROP TABLE roles;
+
+-- 📌 Borrar tabla si existe (evita error si no está creada)
+DROP TABLE IF EXIST roles;
+
+-- 📌 Borrar junto con tablas relacionadas (en cascada)
+DROP TABLE roles CASCADE;
+
+
+
+// 🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
+
+-- 📌 Scripts para crear tabla usuarios
+CREATE TABLE usuarios (
+    id INT GENERATED AS IDENTITY PRIMARY KEY,  -- Identificador único
+    email VARCHAR (100) NOT NULL UNIQUE, -- Correo del usuario (único)
+    password VARCHAR (255) NOT NULL,  -- Hash de la contraseña
+    activo BOOLEAN DEFAULT TRUE,  -- Activo/desactivado
+    created_at TIMESTAMPTZ DEFAULT NOW(), -- Fecha de creación
+    updated_at TIMESTAMPTZ DEFAULT NOW(),  -- Última actualización
+    rol_id INT NOT NULL ,
+    CONSTRAINT fk_rol FOREING KEY (rol_id) REFERENCES roles (id) ON DELETE RESTRICT
+);
+
+-- Define qué pasa si intentas borrar un registro en roles que está siendo usado en usuarios.
+-- RESTRICT significa: ❌ NO te deja borrar el rol si todavía hay usuarios que lo referencian.
+-- Es el modo más seguro: evita que se queden usuario "huérfanos" sin rol válido.

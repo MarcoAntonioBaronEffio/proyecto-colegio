@@ -118,12 +118,7 @@ export class AlumnoService {
 
             throw new ConflictException('DNI o Email ya registrados');
         }
-
-
-
-
-
-
+ 
         
         // 🔹 ¿Qué hace bcrypt? : bcrypt es una librería que sirve para encriptar contraseñas de forma segura.
         // El método hash toma:
@@ -177,6 +172,14 @@ export class AlumnoService {
         //  - Si la entidad tiene campos automáticos (ej: id, createAt, updatedAt) , también los rellena.
         return this.repo.save(alumno);
 
+    }
+
+    // Método del servicio que devuelve todos los registros de alumnos
+    findAll(){
+      // Usamos el repositorio inyectado (this.repo) para consultar en la base de datos.
+      // 🔹 find() es un método de TypeORM que devuelve todas las filas de la tabla asociada a la entidad
+      // 🔹 Esto ejecuta: SELECT * FROM alumnos;
+      return this.repo.find();
     }
 
 
