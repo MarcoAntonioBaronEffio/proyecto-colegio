@@ -11,7 +11,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "seed:role": "ts-node -r tsconfig-paths/register src/modules/roles/seeds/roles.seed.ts",
-    "seed:school": "ts-node -r tsconfig-paths/register src/modules/schools/seeds/school.seed.ts",
+    "seed:school": "ts-node -r tsconfig-paths/register src/modules/roles/seeds/school.seed.ts",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
