@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common'; 
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AlumnoModule } from './alumno/alumno.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -22,8 +21,8 @@ import { SchoolYear } from './entities/school-year.entity';
 import { Grade } from './entities/grade.entity';
 import { Section } from './entities/section.entity';
 import { Classroom } from './entities/classroom.entity';
-import { EnrollmentService } from './enrollment/enrollment.service';
 import { EnrollmentModule } from './enrollment/enrollment.module';
+import { CourseService } from './course/course.service';
 
 
 
@@ -83,7 +82,6 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
       })
     }),
     RolesModule,//✅ Registramos el módulo de roles para que Nest lo cargue al iniciar.
-    AlumnoModule, 
     UsersModule, 
     AuthModule, 
     SchoolYearsModule, 
@@ -91,7 +89,8 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
     SectionModule, StudentModule, SchoolModule, ClassroomModule, EnrollmentModule,
     //✅ En resumen: Este bloque configura NestJS para leer variables del ".env" y con ellas conectarte a PostgreSQL usando TypeORM,
     //cargando automáticamente las entidades y, en modo desarrollo, creando las tablas 
-  ]
+  ],
+  providers: [CourseService]
 })
 export class AppModule {}
 

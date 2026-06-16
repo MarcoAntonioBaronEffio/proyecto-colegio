@@ -49,7 +49,7 @@ export class LoginDto{
     @IsString({message: 'El correo debe ser una cadena de texto.'})
     // 🔹 Asegura que el formato sea un correo válido.
     @IsEmail({}, {message : 'El correo electrónico no es válido.'})
-    email : string;
+    email! : string;
 
     @Transform(({value}) => 
         typeof value === 'string' // Evaluamos que el dato enviado sea un string
@@ -64,5 +64,5 @@ export class LoginDto{
     @MinLength(8, {message: 'La contaseña debe tener al menos 8 caracteres.'})
     // 🔹 Evita contraseñas largas
     @MaxLength(20, {message: 'La contraseña no debe superar los 20 caracteres'})
-    password : string;
+    password! : string;
 }

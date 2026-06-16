@@ -20,8 +20,15 @@ import { Section } from "./section.entity";
 // cadenas sueltas que podrían tener errores de escritura.
 // 🎓 enum que define los niveles educativos posibles. 
 export enum GradeLevel{
-    PRIMARIA = 'PRIMARIA',     // 📘 Educación primaria (1.º a 6.º)
-    SECUNDARIA = 'SECUNDARIA'  // 🎓 Educación secundaria (1.º a 5.º)
+    PRIMARIA = 'PRIMARY',     // 📘 Educación primaria (1.º a 6.º)
+    SECUNDARIA = 'SECONDARY'  // 🎓 Educación secundaria (1.º a 5.º)
+}
+
+// 🔥 ENUM para el estado del grado
+export enum GradeStatus{
+    ACTIVE = 'ACTIVE',  // 🟢 Disponible 
+    INACTIVE = 'INACTIVE', // ⚪️ Oculto
+    CLOSED = 'CLOSED' // 🔴 Cerrado
 }
 
 // 🏛️ Definimos la entidad "grandes" -> se convierte en una tabla en PostgreSQL
@@ -35,7 +42,7 @@ export class Grade{
     // Se genera automáticamente como un UUID (identificador universal)
     // Es la clave primaria (PRIMARY KEY) de la tabla
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     // 🔢 Nombre de grado
     // PRIMARIA : 1..6
@@ -44,7 +51,7 @@ export class Grade{
 
     @Column({type: 'int', name  : 'grade_number'})
     @Index() // 🔍 Mejora el rendimiento al buscar o filtrar por nombre.
-    gradeNumber : number;
+    gradeNumber! : number;
 
     // 🎯 Nivel educativo de grado.
     // Usa el ENUM definido arriba (PRIMARIA, SECUNDARIA), lo que garantiza que solo se pueden
@@ -52,29 +59,27 @@ export class Grade{
     // También lo indexamos para filtrar más rápido por nivel.
     @Column({type: 'enum', enum : GradeLevel})
     @Index() // 🔍 Así las consultas por nivel (ej: todos los de SECUNDARIA) serán más eficientes
-    level : GradeLevel; 
+    level! : GradeLevel; 
     
-    // ✅ Indica si el grado está activo o no dentro del sistema.
-    // Por defecto es true. Si se marca false, puede ocultarse en listados.
-    @Column({type: 'boolean', default: true})
-    isActive: boolean;
-
-    // 🔒 Indica si el grado está cerrado (por ejemplo, al finalizar el año escolar).
-    // Si está en true, ya no se pueden editar notas, alumnos o cursos del grado.
-    @Column({type:'boolean', default: false})
-    isClosed: boolean;
+    @Column({
+        type: 'enum',
+        enum: GradeStatus,
+        default: GradeStatus.ACTIVE
+    })
+    @Index()
+    status! : GradeStatus;
 
     // ⏰ Fecha en la el registro fue creado.
     // Se asigna automáticamente al insertar un nuevo registro.
     // Ejemplo : "2025-11-01 13:09:24.229864"
     @CreateDateColumn()
-    createdAt: Date;
+    createdAt!: Date;
 
     // 🔄 Fecha en la que el registro fue modificado por última vez.
     // TypeORM actualiza este campo automáticamente al hacer un update.
     // Ejemplo : "2025-11-01 13:09:24.229864"
     @UpdateDateColumn()
-    updatedAt: Date;
+    updatedAt!: Date;
 
     // 🧩 Relación muchos grados -> un año escolar
     @ManyToOne(() => SchoolYear, (schoolYear) => schoolYear.grades,{
@@ -84,14 +89,14 @@ export class Grade{
     // 🪶 JoinColumn crea la columna "school_year_id" en la tabla "grades" y la define como clave foránea (FK).
     // Así sabremos a qué año pertenece cada grado.
     @JoinColumn({name: 'school_year_id'})
-    schoolYear : SchoolYear;
+    schoolYear! : SchoolYear;
 
 
     // ✅ ID derivado de la relación (No crea otra columna)
     // 🔹 schoolYearId no es una columna creada por ti, es un valor derivado de la relación
     // 👉 Solo te expone el UUID del schoolYear para usarlo en filtros/DTOs
     @RelationId((grade : Grade) => grade.schoolYear)
-    schoolYearId : string;
+    schoolYearId! : string;
 
 
     // 🧩 Relación con Section - relación inversa con Section
@@ -99,6 +104,7 @@ export class Grade{
     // Aquí solo "leemos" el arreglo de secciones que apuntan a este Grade.
 
     // 🔹 OneToMany() -> Decorador de TypeOrm para 1...N (uno a muchos) 
+    // 🔹 Un grado puede tener muchas secciones
     // ⭐️ Un grado tiene solo las secciones que apuntan a él mediante la FK
     // ⭐️ Piensa en cada tabla "grades" y "sections" como cajas:
     // La tabla "sections" tiene una columna grade_id que "etiqueta" a qué caja pertenece cada sección.
@@ -108,7 +114,7 @@ export class Grade{
         // 🎯 Debe coincidir con la propiedad del @ManyToOne en Section
         section => section.grade) //
     // 📦 Arreglo con todas las secciones que pertenecen a este grado específico
-    sections: Section[];
+    sections!: Section[];
  
 
 }

@@ -4,6 +4,7 @@ import { Grade } from 'src/entities/grade.entity';
 import { Section } from 'src/entities/section.entity';
 import { SectionService } from './section.service';
 import { SectionController } from './section.controller';
+import { Classroom } from 'src/entities/classroom.entity';
 
 // 🏗️ Declaramos el módulo
 // ✅ @Module() recibe un objeto de configuración con:
@@ -15,11 +16,12 @@ import { SectionController } from './section.controller';
 
     // 📚 imports: Importamos repositorios disponibles en este módulo
     // ✅ Todo lo que pongas en imports se "habilita" dentro del contexto de este módulo
-    // En este caso, registramos las entidades Section y Grade para que TypeORM pueda crear los repositorios sectionRepo y gradeRepo
+    // En este caso, registramos las entidades Section, Classroom y Grade para que TypeORM pueda crear los repositorios sectionRepo ,classroomRepoy gradeRepo
     imports : [
-        // 🗄️ Habilita inyección de repositorios para Section y Grade
+        // 🗄️ Habilita inyección de repositorios TypeORM
         TypeOrmModule.forFeature([
             Section, // 🧾 Habilita el repositorio de la tabla sections
+            Classroom, // 🏫 Habilita el repositorio de la tabla classroom
             Grade    // 🏷️ Habilita el repositorio de la tabla grades
         ])
     ],

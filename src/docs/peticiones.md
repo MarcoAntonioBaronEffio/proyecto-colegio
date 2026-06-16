@@ -168,11 +168,32 @@ POST http://localhost:3000/api/school-years
 
 ⭐️ REGISTRAR GRADES (GRADOS)
 
-POST http://localhost:3000/api/grades
+POST http://localhost:3000/api/grades/
+El nivel se manda en inglés , pero desde el front debo mandarlo antes en español
 
 {
-    "level" : "PRIMARIA",
-    "gradeNumber" : 1
+    "gradeNumber" : 1,
+     "level" : "PRIMARY"
+}
+
+
+⭐️ OBTENER GRADES (GRADOS)
+GET http://localhost:3000/api/grades/
+
+{
+    "success": true,
+    "message": "Listado de grados obtenido",
+    "data": [
+        {
+            "id": "15c5373f-c726-43db-a627-3b483cb207d5",
+            "gradeNumber": 1,
+            "level": "PRIMARY",
+            "status": "ACTIVE",
+            "createdAt": "2026-04-20T19:23:33.817Z",
+            "updatedAt": "2026-04-20T19:23:33.817Z",
+            "schoolYearId": "5736114e-f351-448b-9287-f88baaabe1fa"
+        }
+    ]
 }
 
 -----------------------------------------------------------------------------
@@ -183,7 +204,7 @@ POST http://localhost:3000/sections
 
 {
   "gradeId": "dc16c090-fd52-4d8a-9263-6d569666d34c",
-  "name": "B",
+  "name": "A",
   "shift": "MORNING"
 }
 
@@ -202,3 +223,22 @@ http://localhost:3000/api/classrooms
   "capacity": 30,
   "floor": 1
 }
+
+-----------------------------------------------------------------------------
+
+⭐️ REGISTRAR MATRÍCULA
+
+
+http://localhost:3000/api/enrollments
+
+{
+  "studentId": "6a454a7b-28a3-4fb1-bd07-59176d41f4e6",
+  "sectionId":"ca80279c-aa11-4bb1-b27c-8d8d50241489"
+
+}
+
+-----------------------------------------------------------------------------
+
+⭐️ LISTAR MATRICULAS
+
+http://localhost:3000/api/enrollments

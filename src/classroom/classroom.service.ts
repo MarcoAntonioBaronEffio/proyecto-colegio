@@ -1,162 +1,364 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Classroom } from 'src/entities/classroom.entity';
+import { Classroom, ClassroomStatus } from 'src/entities/classroom.entity';
 import { School } from 'src/entities/school.entity';
 import { QueryFailedError, Repository } from 'typeorm';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
+import { UpdateClassroomDto } from './dto/update-classroom.dto';
+import e from 'express';
 
 @Injectable() // 💉 Indicamos que esta clase puede ser inyectada por Nest
 export class ClassroomService { // 🏫 Servicio encargado de la lógica de negocio de classrooms
 
-    // 🧱 Constructor (DI)
-    constructor(
-        // 🗄️  Inyectamos el repositorio de Classroom
+   // 🧩 Repository<Classroom>
+   // 👉 Es el puente entre este servicio y la tabla "classroom"
+   // 👉 Permite usar métodos de TypeORM como: find(), findOne(), save(), remove(), update()
+   constructor(
+        // 🏫 Inyectamos el repositorio de Classroom
         @InjectRepository(Classroom)
-        private readonly classroomRepo: Repository<Classroom>, // 📚 Acceso a la tabla de classrooms
+        private readonly repo: Repository<Classroom> 
+   ){}
 
-    ){} // ✅ Fin del constructor
+   // 🏗️ CREAR AULA
+   async create (dto : CreateClassroomDto) : Promise<Classroom>{
 
-    // ✅ CREATE: Crear Classroom
+        try{
 
-    // 🧠 Método para crear una nueva aula física
-    // 📤 Devuelve el aula creada
-    async create(dto: CreateClassroomDto) : Promise<Classroom>{
- 
-        // 🧼 Normalizamos el nombre del aula
-        // 🧠 Ejemplo: "   Aula 101 "  -> "Aula 101"
-        const normalizedName = dto.name.trim();
-        
-        // 🧼 Normalizamos el código del aula
-        // 🧠 Ejemplo: " a101" -> "A101"
-        const normalizedCode = dto.code.trim().toUpperCase();
+            // 🔍 Verificamos si ya existe un aula con el mismo código
+            // 👉 El código es UNIQUE en la base de datos
+            // 👉 Ejemplo : LAB01, A101
+            const duplicate = await this.repo.findOne({
+                where: {
+                    code: dto.code
+                }
+            });
 
-        // 🔁 Validamos si ya existe un aula con ese código 
-        const existByCode = await this.classroomRepo.findOne({
-            where:{ 
-                // 🔠 Código normalizado
-                code: normalizedCode,  
-            },
-        });
-
-        // 🚫 Si ya existe un aula con ese código en el mismo colegio, lanzamos 400
-        if(existByCode){
-            throw new BadRequestException(
-              `Ya existe un aula con el código "${normalizedCode}" en este colegio.`,  
-            );
-        }
-
-        // 🔁 Validamos si ya existe un aula con ese nombre en el colegio activo
-        const existByName = await this.classroomRepo.findOne({
-            where:{ 
-                // 🏷️ Nombre normalizado
-                name : normalizedName, 
-            },
-        });
-
-        // 🚫 Si ya existe un aula con ese nombre en el mismo colegio, lanzamos 400
-        if(existByName){
-            throw new BadRequestException(
-                `Ya existe un aula con el nombre "${normalizedName}".`,
-            );
-        }
-
-        // 🏗️ Creamos la entidad en memoria(AÚN NO se guarda en la BD)
-        const entity = this.classroomRepo.create({
-            name : normalizedName, // 🏷️ guardamos el nombre limpio
-            code: normalizedCode, // 🔠 guardamos el código limpio y en mayúscula
-            capacity: dto.capacity, // 👥 capacidad la capacidad del aula
-            floor: dto.floor, // 🏢 Piso donde se encuentra el aula
-            isActive: true, // 🟢 Por defecto el aula nace activa
-
-            // 🔗 Alternativa opcional si quieres setear la relación completa
-            //school: {id: dto.schoolId} as any,
-
-        });
-        
-        try{ // 🛡️ Bloque para capturar posibles errores al guardar
-            // 💾 Intentamos guardar el aula en la base de datos
-            return await this.classroomRepo.save(entity);
-        }catch(error){ // 🚨 Capturamos cualquier error lanzado por la BD
-
-            // 🧨 Si la BD lanza un error SQL (ej: UNIQUE constraint - restricción)
-            if(error instanceof QueryFailedError){
-                // 🚫 Traducimos el error a un mensaje amigable para el cliente
-                throw new BadRequestException(
-                    'No se pudo crear el aula (posible duplicado).'
+            // ❌ Si ya existe un aula con ese código
+            // 👉 Lanzamos error de conflicto HTTP 409
+            if(duplicate){
+                throw new ConflictException(
+                    `Ya existe un aula con el código "${dto.code}"`
                 );
             }
 
-            // 🚨 Si es otro error inesperado, lo relanzamos
-            // NestJS lo convertirá en 500 automáticamente
-            throw error;
-        }
-    }
+            // 🧱 Creamos una nueva instancia de Classroom
+            // 👉 repo.create() NO guarda todavía en la BD
+            // 👉 Solo crea el objeto entidad en memoria
 
-    // 📚 READ: Listar todas las aulas
+            // 👉 create() solo crea una instancia/objeto de la entidad en memoria utilizando los datos recibidos (dto)
+            // ❌ NO guarda en PostgreSQL
+            const classroom = this.repo.create({
+                // 📦 Expandimos todos los datos del DTO
+                // 👉 name, code, description, capacity, floor
+                ...dto,
+                // 🟢 Estado inicial automático
+                // 👉 Toda aula nueva inicia activa
+                status: ClassroomStatus.ACTIVE
+            });
 
-    // 🧠 Método para obtener TODAS las aulas físicas
-    // 📤 Devuelve un arreglo de Classroom
-    async findAll(): Promise<Classroom[]>{
-
-        // 🔎 Consultamos todas las aulas en la base de datos
-        const classrooms = await this.classroomRepo.find({
-            // 🔤 Ordenamos por nombre para mantener consistencia visual
-            order:{
-                name : 'ASC', // 🔤 Ordenamos alfabéticamente por nombre
-            },
-        });
-
-        // ✅ Retornamos la lista completa de aulas
-        return classrooms;
+            // 💾 Guardamos el aula en PostgreSQL
+            // 👉 save() hace INSERT automáticamente
+            return await this.repo.save(classroom);
 
 
-    }
+        }catch (error){
 
-    // 📚 READ: Buscaar una sola aula por ID
+            // 🎯 Errores controlados
+            // 👉 Ya tienen mensaje y códigos HTTP correcto
+            if(
+                error instanceof ConflictException ||
+                error instanceof BadRequestException
+            ){
+                throw error;
+            }
 
-    // 🧠 Método asíncrono para buscar UNA aula por su ID (uuid)
-    async findOne(id : string) : Promise<Classroom>{
-        // 🔎 Buscamos en la BD un aula cuyo campo "id" sea igual al id recibido
-        const classroom = await this.classroomRepo.findOne({
-            where: {id} , // 🎯 Filtramos por id
-        });
+            // 🗄️ Error SQL / Base de datos
+            if(error instanceof QueryFailedError){
+                throw new BadRequestException(
+                    'Error de base de datos al crear el aula'
+                );
+            }
 
-        // 🚫 Si NO se encontró ninguna aula con ese id
-        if(!classroom){
-            // ❌ Lanzamos 404 para decirle al frontend que ese recurso no existe
-            throw new NotFoundException('El aula no existe.');
-        }
-
-        // ✅ Si si existe, devolvemos el aula encontrada
-        return classroom;
-    }
-
-    // 🗑️ REMOVE LÓGICO: Desactivar aula
-
-    // 🧠 Método para desactivar un aula sin borrarla físicamente
-    async remove (id : string): Promise<Classroom>{
-
-        // 🔎 Buscamos el aula por id
-        const classroom = await this.classroomRepo.findOne({
-            where: {id}, // Buscamos por id
-        });
-
-        // 🚫 Si el aula no exise, lanzamos 404
-
-        if(!classroom){
-            throw new NotFoundException('El aula no existe.');
+            // 💥 Error inesperado
+            throw new InternalServerErrorException(
+                'Error inesperado al crear el aula'
+            );
 
         }
 
+   }
 
-        // 🔴 Marcamos el aula como inactiva
-        classroom.isActive = false;
+   // 📚 OBTENER TODAS LAS AULAS
+   async findAll() : Promise<Classroom[]>{
 
-        // 💾 Guardamos el cambio en la base de datos
-        return await this.classroomRepo.save(classroom);
+        try{
+
+            // 🔎 Obtenemos todas las aulas
+            const classrooms = await this.repo.find({
+                // 📊 Ordenamos por nombres ASC
+                // Ejemplo: Aula 101 , Aula 102
+                order:{
+                    name : 'ASC'
+                },
+                // NO VAMOS A CARGAR LA RELACIÓN CON SECTIONS. tendremos esa opción en el detalle del classrooms y ver 
+                // cuantas secciones tiene.
+                /*relations :{
+                    sections : true
+                }*/
+            });
+
+            // ✅ Retornamos arreglo
+            // 👉 Si no hay registros devuelve []
+            return classrooms;
+
+        }catch(error){
+
+            // 💥 Error inesperado
+            throw new BadRequestException(
+                'Error inesperado al obtener las aulas'
+            );
+        }
+
+   }
 
 
-    }
+   // 🔍 OBTENER AULA POR ID
+   async findOne(id : string) : Promise<Classroom>{
+
+        try{
+
+            // 🔎 Buscamos el aula por ID
+            const classroom = await this.repo.findOne({
+                // 📦 Condición WHERE
+                where: {id},
+                // 🔗 Cargamos las secciones relacionadas
+                // 👉 Hace JOIN automático
+                relations: {
+                    sections : true
+                }
+            });
+
+            // ❌ Si no existe
+            if(!classroom){
+                throw new NotFoundException(
+                    'Aula no encontrada'
+                );
+            }
+
+            // ✅ Retornamos aula
+            return classroom;
 
 
+        }catch(error){
+
+            // 🎯 Error controlado
+            if(error instanceof NotFoundException){
+                throw error;
+            }
+
+            // 💥 Error inesperado
+            throw new BadRequestException(
+                'Error inesperado al buscar aula'
+            )
+
+        }
+
+
+   }
+
+
+   // ✏️ ACTUALIZAR AULA
+   async update(
+    id : string,
+    dto : UpdateClassroomDto
+   ) : Promise<Classroom>{
+
+        
+        try{
+
+            // 🔍 Buscamos el aula actual
+            // 👉 Reutilizamos findOne()
+            const classroom = await this.findOne(id);
+
+            // 🧠 Validamos si el código está cambiando
+            // 👉 Solo validamos duplicado si realmente cambió
+            if(
+                dto.code != undefined &&
+                dto.code != classroom.code
+            ){
+
+                // 🔎 Buscamos si ya existe otra aula con ese código
+                const exist = await this.repo.findOne({
+                    where : {
+                        code: dto.code
+                    }
+                });
+
+                // ❌ Si existe otro registro con ese código
+                // 👉 Y NO es el mismo registro actual
+                if(exist && exist.id !== classroom.id){
+                    throw new ConflictException(
+                        `Ya existe un aula con el código "${dto.code}"`
+                    );
+                }
+
+            }
+
+            // ✏️ ACTUALIZACIÓN PARCIAL
+
+            // 🏷️ Actualizar nombre
+            if(dto.name !== undefined){
+                classroom.name = dto.name;
+            }
+
+            // 🔢 Actualizar código
+            if(dto.code !== undefined){
+                classroom.code = dto.code;
+            }
+
+            // 📝 Actualizar descripción
+            if(dto.description !== undefined){
+                classroom.description = dto.description;
+            }
+
+            // 👥 Actualizar capacidad
+            if(dto.capacity !== undefined){
+                classroom.capacity = dto.capacity;
+            }
+
+            // 🏢 Actualizar piso
+            if(dto.floor !== undefined){
+                classroom.floor = dto.floor;
+            }
+
+            // 💾 Guardamos cambios
+            // 👉 save() detecta que existe ID
+            // 👉 Entonces hace UPDATE automáticamente
+            return await this.repo.save(classroom);
+
+
+        }catch(error){
+
+            // 🎯 Errores controlados
+            if(
+                error instanceof NotFoundException ||
+                error instanceof ConflictException ||
+                error instanceof BaseAudioContext
+            ){
+                throw error;
+            }
+
+            // 🗄️ Error SQL
+            if (error instanceof QueryFailedError){
+                throw new BadRequestException(
+                    'Error de base de datos al actualizar el aula'
+                );
+            }
+
+            // 💥 Error inesperado
+            throw new InternalServerErrorException(
+                'Error inesperado al actualizar el aula'
+            );
+        }
+   }
+
+   // 🔄 CAMBIAR ESTADO DEL AULA
+   async changeStatus(
+        // 🆔 ID del aula
+        id: string,
+        // 📊 Nuevo estado
+        status : ClassroomStatus
+   ) : Promise<Classroom>{
+
+
+        try{
+
+            // 🔎 Buscamos el aula
+            const classroom = await this.repo.findOne({
+
+                where : {
+                    id
+                }
+
+            });
+
+            // ❌ Si no existe 
+            if(!classroom){
+                throw new NotFoundException(
+                    'Aula no encontrada'
+                );
+            }
+
+            // 🔄 Cambiamos estado
+            classroom.status = status;
+
+            // 💾 Guardamos cambios
+            return await this.repo.save(classroom);
+
+        }catch(error){
+
+            // 🎯 Error controlado
+            if(error instanceof NotFoundException){
+                throw error;
+            }
+
+            // 💥 Error inesperado
+            throw new BadRequestException(
+                'Error al cambiar estado del aula'
+            );
+        }
+   }
+
+   // 🗑️ ELIMINAR AULA
+   async remove (id : string) : Promise<Classroom>{
+
+        try{
+
+            // 🔎 Buscamos el aula
+            const classroom = await this.repo.findOne({
+
+                // 📦 WHERE
+                where: {id},
+                // 🔗 Incluimos sections
+                relations: ['sections']
+
+            });
+
+            // ❌ Si no existe
+            if( !classroom){
+                throw new NotFoundException(
+                    'Aula no encontrada'
+                );
+            }
+
+            // ⚠️ Validación importante
+            // 👉 No permitir eliminar aulas que tengan secciones asociadas
+            if(classroom.sections.length > 0){
+                throw new BadRequestException(
+                    'No se puede eliminar el aula porque tiene secciones asociadas'
+                );
+            }
+
+            // 🧹 Eliminamos el aula
+            await this.repo.remove(classroom);
+
+            // ✅ Retornamos aula eliminada
+            return classroom;
+            
+        }catch(error){
+
+            // 🎯 Errores controlados
+            if(
+                error instanceof NotFoundException ||
+                error instanceof BadRequestException
+            ){
+                throw error;
+            }
+
+            // 💥 Error inesperado
+            throw new InternalServerErrorException(
+                'Error inesperado al eliminar el aula'
+            );
+        }
+   }
 }

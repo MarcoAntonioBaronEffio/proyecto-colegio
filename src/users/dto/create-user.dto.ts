@@ -8,7 +8,7 @@ import { Transform } from "class-transformer";
 // - IsUUID: valida que siga el formato UUID (v1, v2, etc).
 // - MaxLength / MinLength: longitudes mínimas y máximas.
 // - IsNotEmpty: exige que el campo no venga vacío
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUrl, IsUUID, MaxLength, MinLength, ValidateIf } from "class-validator";
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUrl, IsUUID, MaxLength, MinLength} from "class-validator";
 
 // 🧩 Definimos el Data Transfer Object (DTO) para crear usuarios.
 // ✅ DTO significa Data Transder Object
@@ -35,8 +35,24 @@ export class CreateUserDto{
     // Útil para evitar entradas exageradas y proteger la base de datos/índices.
     @MaxLength(150, {message: 'El email no puede superar 150 caracteres'})
     // Tipo esperado: string. Si llega otro tipo, IsEmail/IsString fallarán.
-    email : string;
+    email! : string;
     
+
+
+
+
+    // 📌 🔐 password -> Este campo recibirá la contraseña en texto plano (no el hash)
+    // El hash se generará dentro del servicio usando bcrypt.
+    // Asegura presencia (si viene '', null o undefined, falla)
+    @IsNotEmpty({message: 'La contraseña es obligatoria'})
+    // Debe ser un string
+    @IsString({message: 'La contraseña debe ser un texto'})
+    // Requiere al menos 8 caracteres (buen estándar de seguridad)
+    @MinLength(8, {message: 'La contraseña debe tener al menos 8 caracteres'})
+    // Límite razonable (para provenir payloads enormes)
+    @MaxLength(20, {message: 'La contraseña no debe superar los 20 caracteres'})
+    // Tipo esperado: string.
+    password!: string;
 
 
     // 📌 👤 First Name (nombres)
@@ -54,7 +70,7 @@ export class CreateUserDto{
     // Máximo 120 caracteres para mantener datos razonables.
     @MaxLength(80, {message: 'El nombre no puede superar 80 caracteres'})
     // Tipo esperado
-    firstName : string;
+    firstName! : string;
 
     //📌  👤 Last Name (apellidos)
     // 🔄 Normalizamos quitando espacios sobrantes
@@ -70,22 +86,11 @@ export class CreateUserDto{
     @MinLength(1 , {message : 'El apellido debe tener al menos 1 caracter'})
     // ✅ Máximo 80 caracteres, debe respetar la Entity
     @MaxLength(80, {message: 'El apellido no puede superar 80 caracteres'})
-    lastName : string
+    lastName! : string
 
 
     
-    // 📌 🔐 password -> Este campo recibirá la contraseña en texto plano (no el hash)
-    // El hash se generará dentro del servicio usando bcrypt.
-    // Asegura presencia (si viene '', null o undefined, falla)
-    @IsNotEmpty({message: 'La contraseña es obligatoria'})
-    // Debe ser un string
-    @IsString({message: 'La contraseña debe ser un texto'})
-    // Requiere al menos 8 caracteres (buen estándar de seguridad)
-    @MinLength(8, {message: 'La contraseña debe tener al menos 8 caracteres'})
-    // Límite razonable (para provenir payloads enormes)
-    @MaxLength(20, {message: 'La contraseña no debe superar los 20 caracteres'})
-    // Tipo esperado: string.
-    password: string;
+
 
     // ✅ Indica que este campo es opcional: si no viene, NO valida el resto de decoradores
     @IsOptional()
@@ -120,13 +125,9 @@ export class CreateUserDto{
 
     // ✅ roleId también es opcional
     // ✅ Si no viene, no se validan los decoradores de abajo
-    @IsOptional()
+    // @IsOptional()
     // Valida que sea un UUID versión 4. Cambia '4' si usas otra versión.
-    @IsUUID('4', {message: 'roleId debe ser un UUID v4 válido'})
-    roleId? : string;
-
-
- 
-
+    // @IsUUID('4', {message: 'roleId debe ser un UUID v4 válido'})
+    // roleId? : string;
 
 }

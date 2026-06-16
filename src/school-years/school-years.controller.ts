@@ -18,6 +18,9 @@ import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 // 🧩 Entidad para tipar las respuestas 'data'
 import { SchoolYear } from 'src/entities/school-year.entity';
 import { UpdateSchoolYearDto } from './dto/update-school-year.dto';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { UserRole } from 'src/common/enums/user-role.enum';
+
 
 // 🔐 Autenticación + Autorización por roles
 //import { JwtAuthGuard } from 'src/auth/jwt-auth-guard'; // 🔑 Verifica que el token JWT sea válido 
@@ -38,6 +41,7 @@ export class SchoolYearsController {
     // - Endpont: POST http://localhost:3000/api/school-years
     // - Body: CreateSchoolYearDto (ej: {year, startsOn?, endsOn?})
     // - Seguridad (recomendada): JWT + Roles('admin')
+    @Roles(UserRole.ADMINISTRATOR)
     @Post()
     //@UseGuards(JwtAuthGuard, RolesGuard) // 🛡️ Primero autentica (JWT), luego autoriza (roles).
     //@Roles('admin')                      // 👑 Solo usuarios con rol "admin".

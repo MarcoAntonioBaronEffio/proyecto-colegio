@@ -34,12 +34,12 @@ export class UsersController {
 
     // 🔹 Decorador @Post() -> Indica que este método responderá a solicitudes HTTP de tipo POST.
     // Es decir, se usará cuando el cliente quiera crear un nuevo recurso (en este caso, un usuario).
-    @Post()
+    //@Post()
     // 🔹 Declaracón del método asíncrono "create".
     // - La palabra clave 'async' indica que dentro del método se usarán operaciones asíncronas (por ejemplo, acceder a la base
     // de datos con 'await'), y que este método devolverá una *promersa*.
     // - Nest esperará a que esta promesa se resuelve antes de enviar la respuesta al cliente.
-    async create(
+    //async create(
         // 🔹 Decorador @Body()
         // - Extrae el cuerpo (body) de la petición HTTP POST.
         // - NestJS automáticamente convierte el JSON recibido en un objeto de tipo CreateUserDto.
@@ -49,18 +49,18 @@ export class UsersController {
         // 🔹 Tipo de retorno : Promise<ApiResponse<User>>
         // - Significa que esta función devuelve una PROMESA que cuando se resuelva contendrá un objeto con el formato ApiResponse<User>
         // - ApiResponse<User> es un tipo genérico (definido por ti).
-        @Body() dto: CreateUserDto): Promise<ApiResponse<User>>{
+        //@Body() dto: CreateUserDto): Promise<ApiResponse<User>>{
         // 🔹 Llamamos al servicio "users" (inyectado en el constructor del controlador) para crear un nuevo registro de usuario
             // con los datos del DTO
-            const data = await this.users.create(dto);
+            //const data = await this.users.create(dto);
 
             // 🔹 Devolvemos una respuesta estándar de éxito al cliente.
-            return{
+            /*return{
                 success : true,
                 message : 'Usuario creado correctamente',
                 data,
-            }
-    }
+            }*/
+    //}
 
     // 🧠 ¿Qué pasa si hay un error en el servicio?
     // throw new ConflictException('El email ya existe');

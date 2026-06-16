@@ -21,29 +21,44 @@ import {
     MaxLength,
     IsEnum, // 📏 Controla la longitud mínima y máxima de un string (ej: 1, 5)
 } from "class-validator"; // 🛡️ Reglas de validación que garantizan la integridad de los datos
-import { Shift } from "src/entities/section.entity";
+import { SectionShift } from "src/entities/section.entity";
 
 
 // 📦 DTO para crear una sección
 export class CreateSectionDto{
 
-    // 🏷️ Nombre de la sección: "A", "B", "C"...
+
+    // 🏷️ Nombre de la sección
+    @Transform(({ value }) =>
+    // 🔹 typeof es un operador de Javascript / Typescript
+    // 👉 Permite verificar el tipo de dato. Ejemplo: typeof "hola" -> "string" | typeof 123 -> "number"
+    // ⭐️ Sin typeof -> se rompe , Con typeof : se valida
+    // ✅ Verificamos que realmente sea texto
+    // 👉 Esto evita errores si llegan: null, undefined, números, booleanos u otros
+    typeof value === 'string'  
+        ? value.trim().toUpperCase()  // ✅ Si es true , es decir, si es un string, quitamos los espacios y lo convertimos a mayúsculas 
+        : value)                      // ❌ Si es false, es porque NO es texto, entonces devuelve el valor sin modificarlo, no lo transforma, no lo toca
+    // Si el cliente manda "null", typeof null === 'string -> ❌ false -> retorna null, luego entra en el validador @IsNotEmpty ❌ , @IsEmail ❌, El request 
+    // se bloquea automáticamente con 400 Bad Request , ✅ Error controlado (no error de servidor)
     @IsString() // ✅ Debe ser texto
     @IsNotEmpty() // ✅ No puede venir vacío
     @MaxLength(20) // ✅ Máximo 20 caracteres (suficiente para A, B, C)
-    name: string;
+    name!: string;
 
     // 🕓 Turno: MORNING / AFTERNOON
-    @IsEnum(Shift) // ✅ Solo acepta valores del enum Shift
+    @IsEnum(SectionShift,{message: 'El turno debe ser MAÑANA o TARDE'}) // ✅ Solo acepta valores del enum Shift    
     @IsNotEmpty() // ✅ No puede venir vacío
-    shift: Shift;
+    shift!: SectionShift;
 
     // 🆔 ID del grado al que pertenece esta sección (FK)
     @IsUUID() // ✅ Debe ser un UUID válido
     @IsNotEmpty() // ✅ No puede venir vacío
-    gradeId: string;
+    gradeId!: string;
 
+    // 🆔 ID del aula asignada a la sección
+    @IsUUID() // ✅ Debe ser UUID válido
+    @IsNotEmpty() // ✅ No puede venir vacío
+    classroomId!: string;
 
-
-
+ 
 }

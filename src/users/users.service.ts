@@ -37,6 +37,7 @@ export class UsersService {
     // - dentro de una transacción si recibe "manager"
     async create (
         dto : CreateUserDto, // 📦 DTO limpio (solo datos de User)
+        roleId : string,
         manager?: EntityManager, // 🔄 Manager opcional (para transacciones)
     ) : Promise<User>{ // ↩️ Retorna el usuario creado (sin passwordHash)  
 
@@ -53,14 +54,14 @@ export class UsersService {
 
             // 1️⃣ Extraemos las propiedades del DTO (solo las del usuario)
             // 👉 Desestructuración para trabajar con variables más claras
-            const{
-                email,     // 📧 Email del usuario
-                firstName, // 👤 Nombre
-                lastName,  // 👤 Apellido
-                password,  // 🔑 Contraseña en texto plano 
-                phone,     // 📱 Teléfono
+            const {
+                email ,     // 📧 Email del usuario
+                firstName , // 👤 Nombre
+                lastName ,  // 👤 Apellido
+                password ,  // 🔑 Contraseña en texto plano 
+                phone ,     // 📱 Teléfono
                 avatarUrl, // 🖼️ Avatar
-                roleId,    // 🧩 Viene SIEMPRE desde AuthService (rol real en BD)
+                //roleId,    // 🧩 Viene SIEMPRE desde AuthService (rol real en BD)
             } = dto;
 
             // 2️⃣ Validación de negocio: roleId debe venir sí o sí 
@@ -74,7 +75,7 @@ export class UsersService {
             // 🔹 Esto significa: Busca en la tabla users si existe un registro con este email
             // 🔹 Esto no devuelve exactamente un User completo, sino un User parcial con el "id" nada mas
             const existingUser = await userRepo.findOne({
-                where : { email }, // 🔎 Buscamos usuario cuyp email sea igual al email del DTO
+                where : { email }, // 🔎 Buscamos usuario cuyo email sea igual al email del DTO
                 select : ['id'], // ⚡️ Solo pedimos el id para optimizar la consulta, es decir no necesitamos toda la entidad User, solo el id
                 // ⚡️ Esto es buena práctica, es más rápido, una menos memoria, no trae datos sensibles
             });
@@ -142,11 +143,12 @@ export class UsersService {
     // 📌 Eliminamos 'await' ya que simplemente estamos devolviendo la promesa sin manipular el resultado previamente.
     async findAll() : Promise<User[]>{
         try{
-            // 🔍 Pedimos todos los usuarios activos y cargamos también su rol relacionado
+            // 🔍 Pedimos todos los usuarios registrados
+            // 📌 También cargamos la relación 'role' para inclui el rol de cada usuario
             return this.userRepo.find({
             // 📌 relations indica TypeORM que también cargue la relación 'role' para cada usuario,
             //de modo que el resultado venga con su rol incluido.
-            //relations: {role : true},
+            relations: {role : true}
         })
         }catch(error){
             console.log('Error al listar usuarios: ', error);

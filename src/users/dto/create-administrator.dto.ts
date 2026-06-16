@@ -1,27 +1,33 @@
 import { Transform } from "class-transformer";
-import { IsNotEmpty, IsSemVer, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEnum, IsNotEmpty, IsSemVer, IsString, MaxLength, MinLength } from "class-validator";
+import { DocumentType } from "src/common/enums/document-type.enum";
 
 export class AdministratorDto {
 
 
-    @Transform(({value}) =>
+    @IsNotEmpty({
+        message: 'El tipo de documento es obligatorio'
+    })
+    @IsEnum(DocumentType,{
+        message : 'Tipo de documento no válido'
+    })
+    documentType!: DocumentType;
+
+    @Transform(({value}) => 
         typeof value === 'string'
             ? value.trim()
-            : value)
-    @IsNotEmpty({message : 'El DNI del administrador es obligatorio'})
-    @IsString({message: 'dni debe ser texto'})
-    @MinLength(8, {message: 'dni debe tener 8 caracteres'})
-    @MaxLength(8, {message: 'dni debe tener 8 caracteres'})
-    dni: string;
-
-    @Transform(({value}) =>
-            typeof value === 'string'
-                ? value.trim()
-                : value)
-    @IsNotEmpty({message: 'workCodde es obligatorio'})
-    @IsString({message: 'workCode debe ser texto'})
-    @MaxLength(30, {message: 'workCode no puede superar 30'})
-    workCode: string;
+            : value
+    )
+    @IsNotEmpty({
+        message: 'El número de documento es obligatorio'
+    })
+    @IsString({
+        message: 'El número de documento debe ser texto'
+    })
+    @MaxLength(20, {
+        message : 'El número de documento no puede superar 20 caracteres'
+    })
+    documentNumber!: string;
 
 
 

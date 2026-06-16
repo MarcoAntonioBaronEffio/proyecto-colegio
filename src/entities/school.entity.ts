@@ -1,6 +1,12 @@
 import { Column, CreateDateColumn, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { SchoolYear } from "./school-year.entity";
 
+
+export enum SchoolStatus{
+    ACTIVE = 'ACTIVE',
+    INACTIVE = 'INACTIVE'
+}
+
 // 🧩 Enum opcional para tipo de institución 
 export enum InstitutionType{
     PUBLIC = 'PUBLIC', // 🏛️ Pública
@@ -26,7 +32,7 @@ export class School {
     // ==============================================
 
     @PrimaryGeneratedColumn('uuid') // 🆔 PK tipo UUID 
-    id : string; // 🧾 ID único del colegio
+    id! : string; // 🧾 ID único del colegio
 
     // ==============================================
     // 🏷️ Datos principales
@@ -35,11 +41,11 @@ export class School {
     // 🏷️ Datos principales
     @Index() // 🔎 Indice para búsquedas por nombre (listados, filtros)
     @Column({type: 'varchar', length: 150, nullable: false}) // 🏫 Nombre obligatorio
-    name : string; // 🏫  Nombre del colegio (Ej: "I.E. Javier Heraud")
+    name! : string; // 🏫  Nombre del colegio (Ej: "I.E. Javier Heraud")
 
     @Index({unique: true}) // 🔒 índice + UNIQUE (clave corta del colegio)
     @Column({type: 'varchar', length: 50, nullable: false, unique: true}) // 🧩 Código único
-    code : string; // 🧩 Código interno (Ej: "JAVIERHERAUD", "IEJAVIERHERAUD")
+    code! : string; // 🧩 Código interno (Ej: "JAVIERHERAUD", "IEJAVIERHERAUD")
 
     @Column({type: 'text', nullable: true}) // 📍 Dirección (opcional)
     address?: string; // 📍 Ubicación / dirección
@@ -87,7 +93,7 @@ export class School {
         enum : InstitutionType, // 🧩 Valores permitidos
         default: InstitutionType.OTHER // ✅ Defult seguro
     })
-    institutionType: InstitutionType; // 🏛️ Pública / Privada / Otro
+    institutionType!: InstitutionType; // 🏛️ Pública / Privada / Otro
 
     @Column({
         name: 'level_offered',
@@ -95,14 +101,18 @@ export class School {
         enum: LevelsOffered, // 🧩 Valores permitidos
         default: LevelsOffered.BOTH, // ✅ Default común (Primaria + Secundaria)
     })
-    levelsOffered: LevelsOffered; // 🎓 Niveles que ofrece 
+    levelsOffered!: LevelsOffered; // 🎓 Niveles que ofrece 
 
     // ===============================================
     // ✅ Estado
     // ===============================================
-    @Index() // 🔎 Filtrado rápido por activo/inactivo
-    @Column({name: 'is_active', type: 'boolean', default: true}) // ✅ Activo por defecto
-    isActive : boolean; // ✅ Permite desactivar el colegio sin borrarlo
+    @Index()
+    @Column({
+        type : 'enum',
+        enum : SchoolStatus,
+        default: SchoolStatus.ACTIVE
+    })
+    status!: SchoolStatus;
 
     // ===============================================
     // 🏛️ Fundación del colegio
@@ -119,10 +129,10 @@ export class School {
     // 🕒 Auditoria
     // ===============================================
     @CreateDateColumn({name: 'created_at', type: 'timestamptz'}) // 🕒 Se llena automático al crear
-    createdAt : Date; // 🕒 Fecha de creación
+    createdAt! : Date; // 🕒 Fecha de creación
 
     @UpdateDateColumn({name: 'updated_at', type: 'timestamptz'}) // 🔁 Se actualiza automáticamente al editar
-    updatedAt : Date; // 🔁 Fecha de última actualización
+    updatedAt! : Date; // 🔁 Fecha de última actualización
 
     // ===============================================
     // 🔗 Relaciones
@@ -131,7 +141,7 @@ export class School {
         () => SchoolYear, // 🗓️ Entidad hija
         (schoolYear) => schoolYear.school, //🔙 Propiedad inversa en SchoolYear
     )
-    schoolYears: SchoolYear[]; // 🗓️ Un colegio tiene muchos años escolares
+    schoolYears!: SchoolYear[]; // 🗓️ Un colegio tiene muchos años escolares
 
     
 }

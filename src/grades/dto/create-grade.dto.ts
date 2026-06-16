@@ -32,14 +32,18 @@ export class CreateGradeDto{
     // 🛡️ Evita valores vacíos (null/undefined/'') para level
     @IsNotEmpty({message: 'El campo nivel es obligatorio.'})
     // 🧩 Tipo de campo en runtime/TypeScript
-    level : GradeLevel;
+    level! : GradeLevel;
 
+
+
+
+    
     @Type(() => Number)
     @IsInt({message : 'El número del grado debe ser un entero.'})
     @Min(1, {message : 'El número del grado debe ser mínimo 1.'})
     @Max(6, {message : 'El número de grado no puede ser mayor a 6'})
     @IsNotEmpty({message : 'El número de grado es obligatorio.'})
-    gradeNumber : number; 
+    gradeNumber! : number; 
  
 }
 

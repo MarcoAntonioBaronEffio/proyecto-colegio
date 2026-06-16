@@ -1,6 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "src/app.module";
-import { Rol } from "src/entities/rol.entity";
+import { Rol, RoleStatus } from "src/entities/rol.entity";
 import { Repository , DataSource} from "typeorm";
 
 // ejecutar seed => npm run seed:role
@@ -41,11 +41,31 @@ async function run(){
 
     //✅  Lista de roles base del sistema que queremos insertar sólo si no existen
     const defaultRoles = [
-        {name : 'GUARDIAN', description : 'Apoderado o responsable del estudiante'},
-        {name : 'STUDENT', description : 'Estudiante del sistema escolar'},
-        {name : 'TEACHER', description : 'Docente del sistema escolar'},
-        {name : 'ASSISTANT', description: 'Personal de apoyo administrativo'},
-        {name : 'ADMINISTRATOR', description: 'Administrador con control total del sistema'},
+        {
+            name : 'GUARDIAN', 
+            description : 'Apoderado o responsable del estudiante',
+            status : RoleStatus.ACTIVE
+        },
+        {
+            name : 'STUDENT', 
+            description : 'Estudiante del sistema escolar',
+            status : RoleStatus.ACTIVE
+        },
+        {
+            name : 'TEACHER',
+             description : 'Docente del sistema escolar',
+             status : RoleStatus.ACTIVE
+            },
+        {
+            name : 'ASSISTANT',
+            description: 'Personal de apoyo administrativo',
+            status : RoleStatus.ACTIVE
+        },
+        {
+            name : 'ADMINISTRATOR',
+            description: 'Administrador con control total del sistema',
+            status : RoleStatus.ACTIVE
+        }
     ];
 
     // ✅ Recorremos cada rol definido en la lista

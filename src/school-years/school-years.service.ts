@@ -151,10 +151,10 @@ export class SchoolYearsService {
                 });
 
 
-                // ❌ Verificamos si se encontró un registro con ese mismo año
-                // 📌 exists: significa que si se encontró un año escolar con ese valor
-                // 📌 exists.id !== schoolYear.id: significa que el registro encontrado NO es el mismo que estamos editando
-                // 📌 esto es importante porque si encontramos el mismo registro actual, no sería un conflicto real
+                 // 🔍 Verificamos si ya existe un registro con esos mismos datos
+                // 📌  exist -> significa que la BD encontró un año escolar con ese year
+                // 📌  exist.id !== schoolYear.id -> significa que el registro encontrado NO es el mismo que estamos editando
+                // 👉 Esto evita que el propio registro se detecte como duplicado (falso positivo)
                 if(exists && exists.id !== schoolYear.id){
 
                     // 🚨 Lanzamos una excepión de conflicto
@@ -440,7 +440,7 @@ export class SchoolYearsService {
             // 🔹 toActive.id es el año que queremos activar
             // 🔹 currentActive.id !== toActivate.id significa "Ok si existe un año activo, pero diferente al que quiero activar" = true
             if(currentActive && currentActive.id !== toActivate.id){
-                currentActive.status = SchoolYearStatus.CLOSED; // 🔐Cerramos el anterioe
+                currentActive.status = SchoolYearStatus.CLOSED; // 🔐Cerramos el anterior
                 await this.repo.save(currentActive); // 💾 Guardamos
             }
 
@@ -509,6 +509,4 @@ export class SchoolYearsService {
         }
         
     }
-
-
 }

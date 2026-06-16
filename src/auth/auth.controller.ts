@@ -17,7 +17,9 @@ import { LoginDto } from './dto/login.dto';
 //.   Esto da autocompletado y garantiza que devolvemos siempre la misma estructura.
 import { LoginResponse } from './interfaces/login-response.interface';
 import { RegisterDto } from 'src/users/dto/register.dto';
-import { constrainedMemory } from 'process';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
+import { UserRole } from 'src/common/enums/user-role.enum';
 
 // 🔹 Prefijo del controlador: todas las rutas aquí dentro comienzan con /auth
 @Controller('auth')
@@ -29,9 +31,12 @@ export class AuthController {
     // que se reasigne por error.
     constructor(private readonly auth: AuthService){}
 
+
+    @Public()
     // 🔹 Decorador @Post('login'):
     // Define la ruta HTTP POST /auth/login para este método.
     @Post('login')
+    @HttpCode(200)
     // 🔹 Método asíncrono que maneja el login.
     // - @Body() dto -> extrae el body del request ( JSON plano ) y gracias a ValidationPipe con transform: true, lo convierte en una instancia de LoginDto y aplica 
     //   validaciones.
@@ -82,6 +87,8 @@ export class AuthController {
 
     // ✅ Endpoint para registrar usuario:
     // POST /auth/register
+    //@Roles(UserRole.ADMINISTRATOR)
+    @Public()
     @Post('register') // 🚀 Definimos la ruta POST /auth/register
     @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, responderá con 201 Created
     async register(@Body() dto : RegisterDto){

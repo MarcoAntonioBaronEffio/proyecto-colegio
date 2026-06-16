@@ -1,21 +1,22 @@
 import { 
     BadRequestException,
     ConflictException, // 🚫 Se lanza cuando ocurre un conflicto de datos (por ejemplo: grado duplicado)
-    Injectable,        // 💉 Decorador que marca la clase como inyectable (para usar en otros módulos)
+    Injectable,        InternalServerErrorException,        // 💉 Decorador que marca la clase como inyectable (para usar en otros módulos)
     NotFoundException  // ❌ Se lanza cuando no se encuentra un recurso (ej: ID inexistente)
 } from '@nestjs/common';
 // 🧩 Decorador para inyectar repositorios de TypeORM en nuestro servicio
 import { InjectRepository } from '@nestjs/typeorm';
 // 🎓 Entidad "Grade" -> representa la tabla de grados escolares en la base de datos
-import { Grade } from 'src/entities/grade.entity';
+import { Grade, GradeStatus } from 'src/entities/grade.entity';
 // 🗃️ Clase genérica de TypeORM para realizar operaciones CRUD sobre entidades
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 // 🧾  DTO para validar y tipar los datos que llegan al crear un nuevo grado
 import { CreateGradeDto } from './dto/create-grade.dto';
 // 🏫 Entidad "SchoolYear" -> representa la tabla de años escolares en la base de datos 
 // Se importa porque los grados tienen una relación ManyToOne con SchoolYear
 import { SchoolYear } from 'src/entities/school-year.entity';
 import { SchoolYearStatus } from 'src/school-years/school-year-status.enum';
+import { UpdateGradeDto } from './dto/update-grade.dto';
 
 @Injectable()
 export class GradesService {
@@ -52,6 +53,12 @@ export class GradesService {
             if(!activeSchoolYear){
                 throw new NotFoundException('No existe un año escolar activo');
             }
+
+            // ❌ No permitir si está cerrado (seguridad extra)
+            if(activeSchoolYear.status === SchoolYearStatus.CLOSED){
+                throw new BadRequestException('El año escolar está cerrado');
+            }
+
             
              // ✅ Validar duplicados en el AÑO ACTIVO
              const duplicate = await this.repo.findOne({
@@ -72,12 +79,14 @@ export class GradesService {
              const grade = this.repo.create({
                 ...dto, // ✅ level + gradeNumber (y otros defaults del entity se aplican solos)
                 schoolYear : activeSchoolYear, // ✅ asingnamos el objeto activo
+                status: GradeStatus.ACTIVE,
              });
 
              // ✅ Guardar y devolver
              return await this.repo.save(grade);
 
         }catch(error){
+            console.log(error);
             // 🎯 Atrapamos errores CONTROLADOS
             // Estos errores los lanzamos a propósito
             // - NotFoundException -> 404
@@ -85,7 +94,8 @@ export class GradesService {
             // Comoo ya tienen código y mensaje correcto -> solo los re-lanzamos
             if(
                 error instanceof NotFoundException ||
-                error instanceof ConflictException
+                error instanceof ConflictException ||
+                error instanceof BadRequestException
             ){
                 // 🔁 Nest devuelve el json correcto sin modificar
                 throw error;
@@ -94,9 +104,139 @@ export class GradesService {
             // 💥 Si el error NO es controlado (error de TypeORM, conexión, etc.) lanzamos un 400 genérico
             throw new BadRequestException('Error inesperado al crear el grado')
 
+        }    
+    }
+
+    // ✏️ Método update
+    // 📌 Sirve para actualizar un grado existente en la base de datos
+    // 📌 Recibe:
+    // 1️⃣ id -> identificador del grado
+    // 2️⃣ dto -> datos nuevos que podrían llegar (gradeNumber, level)
+    // 📌 Devuelve el grado actualizado
+    async update (id : string, dto : UpdateGradeDto) : Promise<Grade>{
+
+        try{
+
+            // ✅ Buscamos el grado actual por ID
+            // 📌 Usamos findOne para reutilizar tu lógica (y lanzar NotFound si no existe)
+            const grade = await this.findOne(id);
+
+            // 🧠 Validación importante
+            // 🔍 Este if valida si hay cambios en los campos importantes del grado
+            // 👉 El número de grado (gradeNumber)
+            // 👉 O el nivel (level)
+            if(
+
+                // 🧠 Primera condición (lado izquierdo del OR "!!")
+                // 📌 Verificamos si el gradeNumber viene en el DTO (es decir, el usuario lo está enviando)
+                // 📌 Y además, que sea diferente al que ya existe en la base datos
+                // 👉 Si ambas se cumplen, significa que el número de grado está cambiando
+                (dto.gradeNumber !== undefined && dto.gradeNumber !== grade.gradeNumber) ||
+
+                // 🧠 Segunda condición (lado derecho del OR "!!")
+                // 📌 Verificamos si el level viene en el DTO (el usuario lo está enviando)
+                // 📌 Y además, que sea diferente al nivel actual del grado en la BD
+                // 👉 Si ambas se cumplen, significa que el nivel está cambiando
+                (dto.level !== undefined && dto.level !== grade.level)
+            ){
+
+                // 🔎 Buscamos si ¿ya existe otro grado con los mismos datos?
+                // 👉 Es decir: mismo número + mismo nivel + mismo año escolar
+                // ⭐️ Verificamos si ya existe un registro que entraría en conflicto con lo que queremos actualizar
+                // ⭐️ Busca si ya existe un grado con los mismos datos (gradeNumber + level + schoolYear)
+                const exists = await this.repo.findOne({
+
+                    // 📦 Condiciones de búsqueda
+                    where:{
+
+                        // 🧠 Si el usuario mandó gradeNumber -> usamos ese nuevo valor
+                        // 🧠 Si NO lo mandó -> usamos el valor actual del grado
+                        // 👉 Esto evita que falle la validación cuando solo se cambia uno de los campos
+                        // ⭐️ ?? -> Usa el nuevo valor si existe, sino el actual
+                        gradeNumber : dto.gradeNumber ?? grade.gradeNumber,
+
+                        // 🧠 Igual que arriba pero con el nivel
+                        // 👉 Si viene con el DTO usamos el nuevo
+                        // 👉 Si no, usamos el actual
+                        level: dto.level ?? grade.level,
+
+                        // 🏫 Filtramos por el mismo año escolar
+                        // 👉 Esto es CLAVE para no comparar con grados de otros años
+                        // 👉 Usamos schoolYearId gracias a @RelationId
+                        schoolYear : {id : grade.schoolYearId},
+
+                    },
+                });
+
+            
+
+                // 💫 IMPORTANTE: "where" ya te dice si existe un registro igual
+                // 💫 PERO NO te dice si es el mismo registro que estás editando
+                
+                // 🔍 Verificamos si ya existe un registro con esos mismos datos
+                // ⭐️ Este bloque sirve exactamente para detectar si estás intentando crear un duplicado al actualizar 
+                // ⭐️ En otras palabras: "Si encontré un registro con esos datos y NO es el mismo que estoy editando... entonces hay duplicado -> error"
+                // 📌  exist -> significa que la BD encontró un grado con ese gradeNumber + level + schoolYear
+                // 📌  exist.id !== grade.id -> significa que el registro encontrado (osea uno ya guardado) NO es el mismo que estamos editando
+                // 👉 Esto evita que el propio registro se detecte como duplicado (falso positivo)
+                
+                // 🔹 exists -> es una variable que guarda el resultado de la búsqueda (grade)
+                // 🔹 exist.id -> el ID del registro que encontré en la base de datos
+                // 🔹 grade.id -> el registro que estás editando
+                
+                // 💫 Si de diera el caso : exists.id === grade.id 
+                // 👉 Significa que el registro exontrado el es MISMO que estamos editando
+                // 👉 Es decir, no hay conflicto real de duplicado
+                // 👉 Por lo tanto , la actualización si estaría permitida
+                if(exists && exists.id !== grade.id){
+                    // 🚨 Lanzamos un error de conflicto (400)
+                    // 👉 Significa que ya existe un grado con esos mismos datos
+                    throw new ConflictException(`Ya existe ese grado en este año escolar`);
+                }
+            }
+
+            // ✅ Actualización parcial
+
+            // 🔢 Actualizamos gradeNumber si vino
+            if(dto.gradeNumber !== undefined){
+                grade.gradeNumber = dto.gradeNumber;
+            }
+
+            // 🏷️ Actualizamos level si vino
+            if(dto.level !== undefined){
+                grade.level = dto.level;
+            }
+
+            // 💾 Guadamos cambios
+            return await this.repo.save(grade);
+
+        }catch (error){
+
+            // ✅ Errores controlados -> se relanzan
+            if(
+                error instanceof NotFoundException ||
+                error instanceof BadRequestException ||
+                error instanceof ConflictException
+            ){
+                throw error;
+            }
+
+            // 🗄️ Error en la base de datos
+            if(error instanceof QueryFailedError){
+                throw new BadRequestException(
+                    'Error de base de datos al actualizar el grado',
+                );
+            }
+
+            // 💥 Error inesperado
+            throw new InternalServerErrorException(
+                'Error inesperado al actualizar el grado'
+            );
+
         }
-        
-        
+
+
+
     }
 
     // 📚 Obtenemos todos los grados
@@ -133,13 +273,13 @@ export class GradesService {
         
     }
 
-    // 🔍 Buscar un grado por su ID
+    // 🔍 Obtener un grado por su ID
     async findOne(id: string) : Promise<Grade>{
         try{
             // 🔎 1️⃣ Buscamos un registro en la tabla "grades" cuyo campo "id" coincida con el ID recibido.
             // Además, cargamos la relación con schoolyear para obtener el año escolar del grado.
             const grade = await this.repo.findOne({
-                where : {id},
+                where : { id },
                 // relations: [schoolYear] -> carga la relación ManyToOne con schoolyear 
                 // 🔹 Traeme también el registro que tiene relación con este registro.
                 // 👉🏼 Le decimos a TypeOrm: Además del grado (Grade), haz el JOIN con la tabla school_years y 
@@ -147,7 +287,7 @@ export class GradesService {
                 relations: ['schoolYear'], // 🔗 Incluimos el año escolar
             });
 
-            // ⚠️ 2️⃣ Si no lo encuentra el grado, lanzamos un error 404
+            // ⚠️ 2️⃣ Si no encuentra el grado, lanzamos un error 404
             // Esto es un error "controlado" porque sabemos exactamente que pasó
             if(!grade){
                 throw new NotFoundException('Grado no encontrado ❌');
@@ -217,6 +357,50 @@ export class GradesService {
 
         }
         
+    }
+
+    // 🔁 Método para cambiar el estado de un grado (ACTIVE / INACTIVE / CLOSED)
+    async changeStatus(
+
+        // 🆔 Id del grado que queremos modificar
+        id : string,
+        // 📊 Nuevo estado que queremos asignar (enum GradeStatus)
+        status : GradeStatus
+
+    ) : Promise<Grade>{ // 📦 Retorna el grado actualizado
+
+        try{
+            // 🔍 Buscamos el grado en la base de datos por su ID
+            // 👉 findOne devuelve el registro o null si no existe
+            const grade = await this.repo.findOne({ where : { id }});
+
+            // ❌ Si no encontramos el grado, lanzamos error 404
+            // 👉 Esto evita trabajar con datos inexistentes
+            if(!grade){
+                throw new NotFoundException('Grado no encontrado');
+            }
+
+            // 🔄 Asignamos el nuevo estado al grado encontrado
+            // 👉 Aqui NO guardamos nada todavía, solo modificamos en memoria
+            grade.status = status;
+
+            // 💾 Guardamos los cambios en la base de datos
+            // 👉 save() hace UPDATE automáticamente porque la entidad ya tiene ID
+            // 👉 También actualiza updatedAt automáticamente
+            return await this.repo.save(grade);
+
+        }catch(error){
+
+            // 🎯 Si el error ya es NotFoundException, lo re-lanzamos tal cual
+            // 👉 NestJS ya sabe cual convertirlo en respuesta http 404
+            if(error instanceof NotFoundException) throw error;
+
+            // 💥 Si ocurre cualquier otro error (BD, conexión, etc)
+            // 👉 Lanzamos un error genérico para no exponer detalles internos
+            throw new BadRequestException('Error al cambiar estado del grado'); 
+
+        }
+
     }
     
 }

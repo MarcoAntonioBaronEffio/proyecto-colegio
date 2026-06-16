@@ -6,28 +6,47 @@
 import { 
     IsInt,       // 🔢 Valida que el campo sea un número entero (integer)
     IsOptional,  // 🟡 Indica que un campo es opcional (no es obligatorio en la solicitud)
-    IsDateString // 📆 Valida que el valor tenga formato de fecha válido (YYYY-MM-DD)
+    IsDateString, // 📆 Valida que el valor tenga formato de fecha válido (YYYY-MM-DD)
+    Min,
+    Max
  } from "class-validator";
 
 // 🎓 Creamos la clase CreateSchoolYearDto
 // 📋 Esta clase define la estructura y las reglas de validación que deben cumplirse al crear un nuevo año escolar.
 export class CreateSchoolYearDto{
 
+// 🎓 AÑO ESCOLAR
 // 🧩 Campo: year (año escolar)
-// 🔹 @IsInt -> se asegura de que el valor sea un número entero.
-// 🔹 Si el valor no es entero, muestra el mensaje personalizado
-@IsInt({message : 'El año debe ser entero. Ej: 2025'})
-year : number; // 📘 Ejemplo válido; 2025
+// 🔹 @IsInt -> valida que el valor sea un número entero
+// 🔹 Si se envía un decimal o un valor no entero, la validación fallará
+@IsInt({message : 'El año debe ser entero. Ej: 2026'})
+// 🔹 @Min -> establece el valor mínimo permitido.
+// 👉 Evita registrar años demasiado antiguos o inválidos
+@Min(2000, {message: 'El año no puede ser menor a 2000'})
+// 🔹 @Max -> establece el valor máximo permitido
+// 👉 Evita registrar años excesivamente lejanos
+@Max(2100, {message: 'El año no puede ser mayor a 2100'})
+year! : number; // 📘 Ejemplo válido: 2026, 2027
 // 💡 Este campo es obligatorio porque no tiene @IsOptional.
-// 💬 Es fundamental para identificar cada ciclo escolar (2024 , 2025, etc.)
+// 💡 Permite identificar de forma única cada ciclo escolar
 
+
+
+
+// 📆 FECHA DE INICIO
 // 🧩 Campo: startsOn (fecha de inicio)
-// 🟡 @IsOptional -> el campo no es obligatorio. Si no se envía, no se valida
+// 👉 Representa la fecha oficial de inicio del año escolar
+
+// 🟡 @IsOptional 
+// 👉 Indica que el campo no es obligatorio
+// 👉 Si no se envía, las demás validaciones serán ignoradas
 @IsOptional()
-// 📆 @IsDateString -> valida que la fecha tenga formato correcto "YYYY-MM-DD"
+// 📆 @IsDateString -> 
+// 👉 Valida que la fecha tenga formato ISO válido
+// 👉 El formato esperado es:  "YYYY-MM-DD"
 // 🗓️ Si el formato es incorrecto (por ejemplo "2025/03/01" o "03-01-2025"), lanza el
 // mensaje definido abajo.
-@IsDateString({}, {message: 'startsOn debe ser YYYY-MM-DD'})
+@IsDateString({}, {message: 'La fecha de inicio de año debe tener este formato: YYYY-MM-DD'})
 startsOn? : string; // ❓ El signo "?" indica que es opcional
 // 📘 Ejemplo válido: "2025-03-01"
 // 💡 Este campo sirve para registrar la fecha de inicio oficial del año escolar.
@@ -36,8 +55,8 @@ startsOn? : string; // ❓ El signo "?" indica que es opcional
 // 🟡 Igual que el anterior, es opcional.
 @IsOptional()
 // 📆 Valida que sea una fecha válida y con formato estándar ISO.
-@IsDateString({}, {message: 'endsOn debe ser YYYY-MM-DD'})
+@IsDateString({}, {message: 'La fecha de fin de año debe tener este formato: YYYY-MM-DD'})
 endsOn? : string;
 // 📘 Ejemplo válido: "2025-12-15"
-// 💡 Este campo indica cuándo finaliza el ciclo anterior.
+// 💡 Este campo indica cuándo finaliza el año escolar
 }

@@ -1,10 +1,19 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
+import { IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
 import { CreateUserDto } from "./create-user.dto";
 import { StudentDto } from "./create-student.dto";
 import { Transform, Type } from "class-transformer";
 import { AdministratorDto } from "./create-administrator.dto";
 import { TeacherDto } from "./create-teacher.dto";
 import { GuardianDto } from "./create-guardian.dto";
+
+export enum RoleName {
+    GUARDIAN = 'GUARDIAN',
+    STUDENT = 'STUDENT',
+    TEACHER = 'TEACHER',
+    ASSISTANT = 'ASSISTANT',
+    ADMINISTRATOR = 'ADMINISTRATOR'
+}
+
 
 // ✅ Esta clase representa el payload completo que llegará al backend cuando quiere registrar un usuario según su rol
 // ⭐️ Analogía simple:
@@ -26,11 +35,10 @@ export class RegisterDto extends CreateUserDto {
     @Transform(({value}) => 
     typeof value === 'string'? value.trim().toUpperCase() : value)
     @IsNotEmpty({message : 'Debes enviar roleName'})
-    @IsString({message: 'roleName debe ser un texto'})
-    @IsIn(['GUARDIAN', 'STUDENT','TEACHER','ASSISTANT','ADMINISTRATOR'],{
-        message: 'roleName inválido. Solo: APODERADO, ESTUDIANTE, DOCENTE, AUXILIAR, ADMINISTRADOR'
+    @IsEnum(RoleName, {
+        message : 'roleName inválido.'
     })
-    roleName: string;
+    roleName!: RoleName;
     
 
 

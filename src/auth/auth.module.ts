@@ -13,11 +13,24 @@ import { UsersModule } from 'src/users/users.module';
 // 🎯 Estrategia Passport que leerá y validará el JWT en cada request 
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Student } from 'src/entities/student.entity';
+import { Teacher } from 'src/entities/teacher.entity';
+import { Guardian } from 'src/entities/guardian.entity';
+import { Administrator } from 'src/entities/administrator.entity';
 
 @Module({
   // 🔹 imports -> Módulos externos o internos que exportan algo que necesitas,
   // vienen desde afuera
   imports:[
+
+    TypeOrmModule.forFeature([
+      Student,
+      Teacher,
+      Guardian,
+      Administrator
+    ]),
+
     // ⭐️ Este módulo quiere usar cosas que exporta UserModule, no importa el módulo por sí mismo - importa lo que ese módulo exporta, en 
     //   este caso exporta UserService.
     UsersModule, // ➕ Lo necesitamos para buscar usuarios (por email/id) al validar el token

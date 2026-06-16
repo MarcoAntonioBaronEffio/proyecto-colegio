@@ -1,8 +1,10 @@
 // 🔹 Importa NestFactory, que sirve para crear la aplicación NestJS a partir del módulo principal (AppModule).
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 // 🔹 Importa AppModule, que es el módulo raíz de tu aplicación. Dentro de él se conectan los controladores, servicios y otros módulos
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { JwtAuthGuard } from './auth/jwt-auth-guard';
+import { RolesGuard } from './common/guards/roles.guard';
 
 // 🔹 Declara la función boostrap()
 // La palabra async significa que dentro usaremos operaciones asíncronas con await.
@@ -13,11 +15,70 @@ async function bootstrap() {
   // 🔹 const app -> ahora tienes una instancia de la aplicación INestApplication
   const app = await NestFactory.create(AppModule);
 
-  // ✅ Habilitar CORS para Vite(Vue)
+  // 🧠 Obtenemos una instancia de Reflector desde el contenedor de Nest
+  // 👉 app.get() -> pide una dependencia registrada en Nest
+  // 👉 Reflector -> nos permite leer metadata de decorators (@Public , @Roles)
+  const reflector = app.get(Reflector);
+
+  // 🛡️ Registramos GUARDS de manera GLOBAL
+  // 👉 Se aplicarán automáticamente a todas las rutas (controllers/endpoints)
+  // 👉 Ya NO necesitamos usar @UserGuard() en cada controller
+
+  // ⚠️ ORDEN IMPORTANTE (se ejecutan de arriba hacia abajo):
+  // 🥇 JwtAuthGuard -> AUTENTICACIÓN (verifica identidad)
+  // 🥈 RolesGuard -> AUTORIZACIÓN (verifica permisos)
+
+  // ⭐️ Todas las request pasaran por: 1️⃣ JWTAuthGuard y 2️⃣ RolesGuard
+  app.useGlobalGuards(
+    // 🔐 JwtAuthGuard (PRIMERO)
+    // 👉 Pregunta: ¿Quién eres?
+    // 🔍 Lee metadata @Public()
+    // - Si es público -> deja pasar SIN token
+    // - Si no es público -> existe JWT
+
+    // 🔐 Si hay JWT:
+    // 👉 Lo valida usando JwtStrategy
+    // 👉 Decodifica el payload
+    // 👉 Inserta en el usuario en: request.user = {sub, email, roleName}
+
+    // 💡 Resultado
+    // 👉 A partir de aqui ya tenemos al usuario disponible en la request
+    new JwtAuthGuard(reflector),
+
+    
+
+    // 🛡️ RolesGuard (SEGUNDO)
+    // 👉 Pregunta: "¿Tienes permiso?"
+    // 🔍 Lee metadata @Roles()
+
+    // 📌 Casos:
+    // 👉 Si NO hay @Roles() -> acceso libre
+    // 👉 Si SI hay @Roles():
+    //  - Obtiene roles requeridos (ej: ['ADMINISTRATOR])
+    //  - Lee request.user.roleName 
+    //  - Compara:
+
+    // ☑️ Coincide -> permite acceso
+    // ❌ No coincide -> bloquea (403 Forbidden)
+
+    // 💡 IMPORTANTE:
+    // 👉 Este guard DEPENDE de JwtAuthGuard
+    // 👉 Porque necesita request.user ya definido
+    new RolesGuard(reflector)
+
+
+
+  );
+
+  // ✅ Habilitar CORS para frontend Vite(Vue)
   app.enableCors({
-    origin : 'http://localhost:5173', //👈 tu frontend
+    // 🌎 Permite cualquier localhost/origen, es decir, acepta el origen que venga en la request
+    origin : true,
+    // 🍪 Permite cookies/tokens/sesiones
     credentials : true,
+    // 📡 Métodos HTTP permitidos
     methods : ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    // 🏷️ Headers permitidos
     allowedHeaders : ['Content-Type' , 'Authorization'],
   });
 

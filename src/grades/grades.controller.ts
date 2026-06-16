@@ -6,7 +6,8 @@ import {
     Post,  // ➕ Decorador para definir rutas tipo POST.
     Get,   // 📤 Decorador para definir rutas tipo GET .
     Param, // 🏷️ Decorador para leer parámetros de la URL (ej: /grades/:id)
-    Delete // ❌ Decorador para definir rutas tipo DELETE
+    Delete, // ❌ Decorador para definir rutas tipo DELETE
+    Patch
 } from '@nestjs/common';
 
 // 🧠 Importamos el servicio donde se encuentra la lógica de base de datos
@@ -16,7 +17,8 @@ import { CreateGradeDto } from './dto/create-grade.dto';
 // 📄 Importamos la interfaz que define el formato de las respuestas del servidor
 import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 // 🧱 Importamos la entidad que representa la tabla "grado" en la base de datos
-import { Grade } from 'src/entities/grade.entity';
+import { Grade, GradeStatus } from 'src/entities/grade.entity';
+import { UpdateGradeDto } from './dto/update-grade.dto';
 
 // 🏫 Controlador principal de "Grades"
 // 👉🏼 Todas las rutas aquí comienzan con /grades
@@ -61,7 +63,38 @@ export class GradesController { // 🏷️ Declaramos la clase del controlador
             message: 'Listado de grados obtenido', // 🗣️ Mensaje descriptivo 
             data : data,    // 📋 Lista de grados
         };
-}
+    }
+
+    // ✏️ Actualizar un grado existente
+    // 📋 Endpoint: PATCH http://localhost:3000/api/grades/:id
+    // - Permite corregir el número de grado o el nivel
+    // - Útil si el administrador se equivocó al registrar
+    @Patch(':id') // 📌 Escucha peticiones PATCH en /grades/:id
+    async update(
+
+        // 🆔 Extraemos el id desde la URL
+        @Param('id') id : string,
+
+        // 📦 Extraemos el body y lo validamos con UpdateGradeDto
+        @Body() dto : UpdateGradeDto,
+    ) : Promise<ApiResponse<Grade>>{
+
+        // 🚀 Llamamos al servicio para actualizar el grado
+        const update = await this.gradesService.update(id, dto);
+
+        // 📤 Retornamos una respuesta estándar 
+        return{
+            success : true, // ✅ La operación salió bien
+            message : 'Grado actualizado correctamente', // 🗒️ Mensaje informativo
+            data : update, // 📦 Retornamos el grado ya actualizado
+        }
+
+    }
+
+
+
+
+
 
     // 🔹 Método find one
     // 🔍 Ruta: GET /grades/:id -> obtiene un grado por su ID
@@ -98,5 +131,29 @@ export class GradesController { // 🏷️ Declaramos la clase del controlador
             message: 'Grado eliminado', // 🗣️ Mensaje descriptivo
             data : data, // 🧾 Retorna el registro eliminado
         };
+    }
+
+    // 🔁 Ruta: PACTH /grades/:id/status
+    // 👉 Cambiar el estado del grado (ACTIVE / INACTIVE / CLOSED)
+    @Patch(':id/status')
+    async changeStatus(
+        // 🆔 ID del grado desde la URL
+        @Param('id') id : string,
+        // 📦 Body con el nuevo estado
+        // 👉 Ejemplo: {"status": "CLOSED"}
+        @Body('status') status : GradeStatus
+    ) : Promise<ApiResponse<Grade>>{
+
+
+        // 🔄 Llamamos al service para actualizar estado
+        const data = await this.gradesService.changeStatus(id, status);
+
+        // 📦 Respuesta estándar
+        return{
+            success: true, 
+            message: 'Estado del grado actualizado',
+            data : data,
+        }
+
     }
 }

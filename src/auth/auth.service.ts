@@ -1,5 +1,11 @@
 // ✅ Importamos decoradores y excepciones de Nest
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common'; 
+import { 
+    BadRequestException, 
+    ConflictException, 
+    Injectable, 
+    InternalServerErrorException, 
+    NotFoundException, 
+    UnauthorizedException } from '@nestjs/common'; 
 // ✅ Servicio de firma y verifica JWT
 import { JwtService } from '@nestjs/jwt';
 // ✅ Servicio de usuarios (acceso a DB para buscar por email, etc.)
@@ -7,16 +13,19 @@ import { UsersService } from 'src/users/users.service';
 // ✅ Importamos bcrypt para comparar contraseñas en texto plano vs hash
 import * as bcrypt from 'bcrypt'
 import { RegisterDto } from 'src/users/dto/register.dto';
-import { DataSource, QueryFailedError } from 'typeorm';
-import { Rol } from 'src/entities/rol.entity'; 
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { Rol, RoleStatus } from 'src/entities/rol.entity'; 
 import { Student } from 'src/entities/student.entity';
 import { Administrator } from 'src/entities/administrator.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { Teacher } from 'src/entities/teacher.entity';
 import { Guardian } from 'src/entities/guardian.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CodeGenerator } from 'src/common/utils/code-generator.util';
+
 
 // 🔹 Indicamos que esta clase es un "servicio" inyectable en NestJS.
-// Es decir, Nest puede crear una instancia y pasarla automáticamente a otras clases que la necesiten.
+// 🔹 Es decir, Nest puede crear una instancia y pasarla automáticamente a otras clases que la necesiten.
 @Injectable()
 export class AuthService {
 
@@ -34,7 +43,22 @@ export class AuthService {
         // - DataSource = la puerta principal del banco 🚪
         // - Repository = una ventanilla de atención 🪟
         // - transacción = una operación bancaria segura 🔐
-        private readonly dataSource : DataSource
+        private readonly dataSource : DataSource,
+
+        @InjectRepository(Student)
+        private readonly studentRepository : Repository<Student>,
+
+        @InjectRepository(Teacher)
+        private readonly teacherRepository : Repository<Teacher>,
+
+        @InjectRepository(Guardian)
+        private readonly guardianRepository : Repository<Guardian>,
+
+        @InjectRepository(Administrator)
+        private readonly administratorRepository : Repository<Administrator>,
+
+
+
     ){}
 
     // ✅ Método validate
@@ -87,6 +111,12 @@ export class AuthService {
         }
     }
 
+
+
+
+
+
+
     // ✅ Método: signToken - Firmar Token
     // Se encarga de generar un Token JWT a partir de los datos del usuario.
     // Este token luego se devuelve al frontend para que pueda acceder a rutas protegidas.
@@ -99,7 +129,8 @@ export class AuthService {
             sub: string; 
             email : string; 
             roleId : string;
-            roleName : string}){
+            roleName : string})
+        {
 
         try{
             // 1️⃣ Creamos el payload, es decir, la información que irá dentro del token.
@@ -147,6 +178,10 @@ export class AuthService {
     }
 
 
+
+
+
+
     // ✅ Registra usuario + perfil obligatorio según rol, dentro de una transacción
     // ⭐️ Una transacción es un bloque de operaciones en la base de datos que debe cumplirse bajo una regla:
     // ⭐️ Si algo falla en cualquier paso, TODO se revierte (rollback) 🔁🧨
@@ -189,11 +224,15 @@ export class AuthService {
 
             // ✅ Buscamos el rol activo por nombre
             const role = await roleRepo.findOne({
-                where : { name : roleNameNormalized, isActive : true }, // ✅ Debe existir y estar activo
+                where : { 
+                    name : roleNameNormalized,
+                    status: RoleStatus.ACTIVE
+                    //isActive : true 
+                }, // ✅ Debe existir y estar activo
             }); // 🧾 consulta dentro de la transacción
 
             if (!role) { // ❌ Si el rol no existe o está inactivo
-                throw new BadRequestException('El rol enviado no existe o está inactivo'); // 🚫 400: dato inválido
+                throw new BadRequestException('El rol enviado no existe'); // 🚫 400: dato inválido
             }
 
 
@@ -225,7 +264,7 @@ export class AuthService {
 
             // ⭐️ ¿Para qué sirve esto? sirve para luego hacer algo como esto: 
             //.   const requiredKey = requiredPayloadByRole[dto.roleName];
-            // 🔹 Si : dto.roleName = 'STUDENT , entonces requiredKey = 'student
+            // 🔹 Si : dto.roleName = 'STUDENT , entonces requiredKey = 'student'
 
             // ⭐️ Y luego validar 
             /* 
@@ -242,7 +281,7 @@ export class AuthService {
                 // 🔹 Aquí decimos:
                 // 👉 Si el rol es "STUDENT"
                 // 👉 entonces el payload obligatorio será "student"
-                // 🧠 En otras palabras simples: "Cuando alguien se registra como STUDENT", espero que dentro del dto venla la parte dto.student"
+                // 🧠 En otras palabras simples: "Cuando alguien se registra como STUDENT", espero que dentro del dto venga la parte dto.student"
                 // 📦 O sea, este objeto está haciendo un "mapa":
                 //.   rol -----------> payload obligatorio
                 //.   STUDENT -------> student
@@ -270,7 +309,7 @@ export class AuthService {
             /* 🔹 Piensa asi: requiedPayloadByRole es como una tabla
                     
                     {
-                        STUDENT : "student",
+                        "STUDENT" : "student",
                         "ADMINISTRATOR": "administrator"
                     }
             
@@ -316,13 +355,14 @@ export class AuthService {
             // 🧠 Ahora toca validar otra cosa:
             // "¿El usuario realmente envió ese campo obligatorio en el dto?"
             // 👉 Para eso usamos dto[requiredField]
+            // ⭐️ En resumen, si el usuario envia el rol , PERO no envió el payload 
             if(!dto[requiredField]){
                 // 🧠 dto[requiredField] es acceso dinámico a una propiedad
                 // 🔹 Esto significa: no estamos escribiendo fijo dto.student o dto.administrator sino que lo decidimos en tiempo de 
                 //.  ejecución según el rol.
                 
                 // ✅ Ejemplo 1:
-                // requiredField = "student" entonces dto[requiredField] equivales a: dto.student
+                // requiredField = "student" entonces dto[requiredField] equivale a: dto.student
                 
                 // ✅ Ejemplo 2: 
                 // requiredField = "administrator" entonces dto[requiredField] equivale a : dto.administrator
@@ -362,7 +402,7 @@ export class AuthService {
             // 🔹 Creamos una constante llamada allPayloadFields
             // ✅ Esta constante va a guardar una lista con TODOS los payloads extra posibles que pueden venir dentro de RegisterDto según el rol.
             // 🧠 En palabras simples: esta lista responde a la pregunta: "¿Qué cajitas especiales puede traer el DTO?""
-            // ✅ En este caso, las cajitas posibles son: student, administrator
+            // ✅ En este caso, las cajitas posibles son: student, administrator, teacher, guardian
             /* 📦 Ejemplo de DTO:
             
                 {
@@ -391,16 +431,21 @@ export class AuthService {
             ]
  
             // 🔄 Ahora recorremos uno por uno todos los payloads posibles
-            // 🔹 Piensa que el backend agarra esta lista: ["student", "administrator"] y empieza a revisarla asi:
+            // 🔹 Piensa que el backend agarra esta lista: ["student", "administrator", "teacher", "guardian"] y empieza a revisarla asi:
             // 1️⃣ field = "student"
             // 2️⃣ field = "administrator"
+            // 3️⃣ field = "teacher"
+            // 4️⃣ field = "guardian"
 
             // 🧠 ¿Para qué hacemos esto?
             // 👉 Para asegurarnos de que el cliente NO mande payloads de otros roles
             // ✅ Ejemplo válido: role = STUDENT manda solo dto.student
             // ❌ Ejemplo inválido: role = STUDENT pero manda dto.administrator
+            // ⭐️ for recorre todos los campos, y no se detiene solo porque uno ya fue correcto
             for(const field of allPayloadFields){
                 
+                // ⭐️ En cada vuelta, se ejecuta este "if"
+
                 // 🍎 Aqui está la validación importante
                 // El if pregunta dos cosas al mismo tiempo:
                 // 1️⃣ ¿Este campo que estoy revisando NO es el que corresponde al rol?
@@ -408,20 +453,103 @@ export class AuthService {
                 // 2️⃣ ¿Y aún así el cliente lo envío?
                 // 🔹 dto[field]
                 // ✅ Si ambas cosas pasan al mismo tiempo: entonces el cliente mandó un payload que NO debía mandar.
-                if(field !== requiredField && dto[field]){
-                    // ❌ Si entra aqui, lanzamos un error porque el cliente envió un payload que corresponden a otro rol
-                        // 🔹 Ejemplo: 
-                        // role.name = "STUDENT"
-                        // requiredField = "student"
+ 
+ 
+                // ⭐️ En esta condición usamos AND (&&) y eso significa: AMBAS condiciones deben ser verdaderas para entrar al if
+                // 👉 field es SOLO el nombre del campo revisado en ese momento
+                // 👉 dto[field] es el valor real del campo que envió el cliente
 
-                        // pero el cliente manda:
-                        /*
-                            {
-                                roleName : "STUDENT",
-                                student : { ... },
-                                administrator : { ... }
-                            }
-                        */
+                // 🔹 field !== requiredField
+                // 👉 Este campo NO debería venir
+
+                // 🔹 dto[field]
+                // 👉 Pero el cliente SI lo envió
+                // ⭐️ Significa : SI EL CLIENTE ENVIÓ UN CAMPO QUE NO CORRESPONDE A SU ROL
+
+                // ⭐️ Este IF está a la espera de que enviremos algo indebido
+                // 🚨 Es un guardia de seguridad
+                // ⭐️ ambos usan el mismo "field" de acuerdo a la iteracción actual
+                // 👉 Para no entrar en este if, debo enviar únicamente el payload que corresponda al rol.
+
+                // ⭐️ dto[field] -> NO significa dto.requiredField
+                // 👉 Sino : "Accede dinámicamente a la propiedad cuyo nombre esté guardado actualmente en field"
+                // ⭐️ Primera iteración: field = "student" 
+                // ⭐️ Entonces : dto ["student"], se convierte automáticamente en: dto["student"] o equivalente a "dto.student"
+
+                // ⭐️ Segunda iteración: 
+                // 👉 Ahora el loop hace: field = "administrator"
+                // 👉 Entonces: dto[field] se convierte en dto["administrator"] o equivalente a "dto.administrator"
+
+                // ✨ Lo importante es que tú desde tu frontend SOLO debes enviar el payload correcto
+                if(field !== requiredField && dto[field]){
+                    
+                    // primera iteración
+                    // student !== student (role enviado fue student) && dto[student] <- aqui el cliente debió enviar en el payload student
+                    // false && true -> false
+
+                    // segunda iteración
+                    // administrator !== student && dto [admnistrator] <- pero aqui se envió student
+                    // true && false = false
+
+
+                    // ⭐️ Caso 1: No entra al if (todo correcto)
+                    // 🔹 Datos
+                    // field = "student"
+                    // requiredField = "student"
+                    
+                    
+
+                    /*
+                        dto = { student: {name : "Marco" } }
+
+                    */
+
+                    // 🔍 Evaluación
+                    // 🔹 "student" (loop - field) !== "student" (requiredField) -> false porque son iguales
+                    // 🔹 dto["student" - loop] = true , porque el cliente si mandó dto["student"] desde el cliente
+                    
+
+                    /* ------------------------------------------- */
+
+                    // ⭐️ Caso 2: No entra al if (campo no existe)
+                    // 🔹 Datos
+                    // field = "administrator" -> aqui va en la segunda iteración
+                    // requiredField = "student"
+
+                    /* 
+                        dto = {student : {name : "Marco"} }
+
+                    */
+
+                    // 🔍 Evaluación
+                    // 🔹 "administrator" (loop - field) != "student" (requiredField) -> true porque si son diferentes
+                    // 🔹 dto["administrator" - loop ] = undefined => false , porque el cliente NO envió dto.administrator , envió dto.student desde el cliente
+                    // ⭐️ true && false => false
+
+                    /* ------------------------------------------- */
+
+
+                    // ⭐️ Caso 3: Si entra en el if
+                    // 🔹 Datos
+                    // field = "administrator"
+                    // requiredField = "student"
+
+                    /* 
+                        dto = {student : { name : "Marco" } },
+                        administrator : { workCode : "ADM-01" }
+                    
+                    */
+
+                    
+                    // 🔍 Evaluación
+                    // 🔹 "administrator" (loop - field) !== "student" (requiredField) -> true porque son distintos
+                    // 🔹 dto["administrator"] -> true, porque el cliente SI envió dto.administrator
+
+                    // ⭐️ true && true -> true
+
+                    // 🚨 Entonces entra al if
+                    // 👉 El backend detecta que el cliente envió un payload que NO corresponde al rol STUDENT
+
 
                         // 👉 el backend dirá: "Oye, para STUDENT solo debías mandar student, no administrator"
                     throw new BadRequestException(
@@ -431,8 +559,8 @@ export class AuthService {
                         // ✅ ${role.name} inserta el rol real encontrado
 
                         // 📤 Ejemplo de mensaje: "No debes enviar "administrator" cuando el rol es STUDENT
-                        // 📤 Otro ejemplo: "No debes enviar "student" cuando el rol es ADMINISTRATOR.
-                        `No debes enviar "${String(field)}" cuando el rol es ${role.name}`,
+                        // 📤 Otro ejemplo: "No debes enviar el payload "student" cuando el rol es ADMINISTRATOR.
+                        `No debes enviar "el payload ${String(field)}" cuando el rol es ${role.name}`,
                     )
 
                      
@@ -462,6 +590,11 @@ export class AuthService {
             // const CreateUserDto = { ... } 
             const createUserDto : CreateUserDto = {
 
+                // ⭐️ Voy a tomar solamente los datos que pertenecen al usuario base y crear un objeto limpio de tipo "CreateUserDto"
+                // 🔹 ¿Por qué se hace esto?
+                // 👉 Porque RegisterDto tiene información que no pertenece a la tabla "users"
+                // ✨ La construcción de CreateUserDto se hace a partir de RegisterDto
+
                 // 📨 Tomamos el email que vino en el dto original y lo copiamos al nuevo objeto limpio
                 email : dto.email,  
                 // 🙎‍♂️ Tomamos el nombre del usuario desde el dto original
@@ -482,7 +615,7 @@ export class AuthService {
                 // Porque el cliente podría intentar manipular el rol manualmente
                 // entonces la idea es:
                 // "Yo backend ya validé el rol y ahora usaré el rol real de la BD"
-                roleId: role.id,
+                //roleId: role.id,
             }
 
  
@@ -496,6 +629,7 @@ export class AuthService {
                 // 📦 Le pasamos el DTO limpio
                 // ✅ Aqui solo viajan los campos que pertenecen a User
                 createUserDto,  
+                role.id,
                 // 🔁 También le pasamos el manager de la transacción actual
                 // 🧠 Esto es importantísimo:
                 // asi users.create (...) trabajará DENTRO de la misma transacción
@@ -533,7 +667,8 @@ export class AuthService {
                     // usando el mismo manager de la transacción
                     // 🧠 Esto asegura que todo siga dentro de la misma transacción
                     const studentRepo = manager.getRepository(Student); 
- 
+
+               
                     // 🧱 Creamos una entidad Student en memoria
                     // ✅ OJO: create(...) todavia NO guarda en la base de datos.
                     // Solo arma el objeto entidad
@@ -544,18 +679,22 @@ export class AuthService {
                         // 🧠 savedUser.id ya existe porque el usuario ya fue guardado
                         // Entonces aqui decimos: "este estudiante pertenece a este usuario"
                         user: {id : savedUser.id}, 
-                        // 🪪 Copiamos el DNI desde dto.student
-                        // ⚠️ El signo ! significa
-                        // "Confío en que dto.student existe"
-                        // 🧠 Esto se apoya en la validación previa que hiciste antes
-                        dni : dto.student!.dni, 
-                        // 🪪 Copiamos el código de estudiante desde dto.student
-                        studentCode: dto.student!.studentCode, 
+                        // 📄 Datos propios del estudiante
+                        documentType: dto.student!.documentType,
+                        documentNumber : dto.student!.documentNumber
+                        // 🏷️ No asignamos studentCode aqui
+                        // 🧠 El código se genera después del primer "save()", porque necesitamos que PostgreSQL genere primero el UUID
                     });
+
+                    // 💾 Guardar para obtener UUID
+                    const savedStudent = await studentRepo.save(student);
+
+                    // 🏷️ Generar código amigable
+                    savedStudent.studentCode = CodeGenerator.generate('STU', savedStudent.id);
 
                     // 💾 Ahora si guardamos el Student en la base de datos.
                     // 🔹 aqui recién el estudiante se persiste de verdad.
-                    await studentRepo.save(student);
+                    await studentRepo.save(savedStudent);
                 },
 
 
@@ -565,20 +704,28 @@ export class AuthService {
 
                     // 🗂️ Obtenemos el repositorio de Administrador dentro de la misma transacción
                     const adminRepo = manager.getRepository(Administrator); 
+
+                    
                     // 🧱 Creamos la entidad Administrator en memoria.
                     // ✅ Igual que antes: create(...) prepara el objeto pero aún no lo guarda
                     const admin = adminRepo.create({
                         // 🔗 Relacionamos el administrador con el usuario recién creado
                         user: {id : savedUser.id},  
-                        // 🪪 Tomamos el DNI desde dto.administrator
-                        // ⚠️ Otra vez usamos ! porque asumimos que ya validaste que ese payload si vino para este rol
-                        dni : dto.administrator!.dni,  
-                        // 🪪 Tomamos el código laboral del administrador.
-                        workCode: dto.administrator!.workCode, 
+                        // 📄 Datos propios del administrador
+                        documentType : dto.administrator!.documentType,
+                        documentNumber : dto.administrator!.documentNumber
+                        // 🏷️ No asignamos administratorCode aqui
+                        // 🧠 El código se genera después del primer "save()", porque necesitamos que PostgreSQL genere primero el UUID
                     });
 
-                    // 💾 Guardamos el administrador en la base de datos
-                    await adminRepo.save(admin);
+                    // 💾 Guardamos para obtener UUID
+                    const savedAdmin = await adminRepo.save(admin);
+
+                    // 🏷️ Generar código amigable
+                    savedAdmin.administratorCode = CodeGenerator.generate('ADM', savedAdmin.id);
+
+                    // 💾  Actualizar administrador con el código generado
+                    await adminRepo.save(savedAdmin);
                 },
 
                 // 👨‍🏫 HANDLER para el rol TEACHER
@@ -588,20 +735,27 @@ export class AuthService {
                     // 📦 Obtenemos el repositorio de Teacher dentro de la misma transacción
                     const teacherRepo = manager.getRepository(Teacher);
 
+
                     // 🧱 Creamos la entidad Teacher en memoria
                     const teacher = teacherRepo.create({
                         // 🔗 Relacionamos el docente con el usuario recién creado
                         user: {id : savedUser.id},
-                        // 🪪 Guardamos el DNI del docente
-                        dni: dto.teacher!.dni,
-                        // 🏷️ Guardamos el código interno del docente
-                        teacherCode: dto.teacher!.teacherCode,
-                        // 📘 Especialidad opcional del docente
-                        specialty: dto.teacher!.specialty,
+                        // 📄 Datos propios del profesor
+                        documentType: dto.teacher!.documentType,
+                        documentNumber: dto.teacher!.documentNumber,
+                        professionalTitle : dto.teacher!.professionalTitle
+                        // 🏷️ No asignamos teacherCode aqui
+                        // 🧠 El código se genera después del primer "save()", porque necesitamos que PostgreSQL genere primero el UUID
                     });
 
-                    // 💾 Persistimos el docente en la base de datos
-                    await teacherRepo.save(teacher);
+                    // 💾 Guardamos para obtener el UUID generado por PostgreSQL
+                    const savedTeacher = await teacherRepo.save(teacher);
+
+                    // 🏷️ Generamos un código amigable basado en el UUID
+                    savedTeacher.teacherCode = CodeGenerator.generate('DOC', savedTeacher.id)
+
+                    // 💾 Actualizamos el docente agregando el código generado
+                    await teacherRepo.save(savedTeacher);
                 },
 
                 // 👨‍👩‍👦  HANDLER para el rol GUARDIAN
@@ -611,18 +765,27 @@ export class AuthService {
                     // 📦 Obtenemos el repositorio de Guardian dentro de la misma transacción
                     const guardianRepo = manager.getRepository(Guardian);
 
+                    
                     // 🧱 Creamos la entidad Guardian en memoria
                     const guardian = guardianRepo.create({
                         // 🔗 Relacionamos el apoderado con el usuario recién creado
                         user : {id : savedUser.id},
-                        // 🪪 Guardamos el DNI del apoderado
-                        dni: dto.guardian!.dni,
-                        // 👨‍👩‍👦 Guardamos el parentesco del apoderado
-                        relationship: dto.guardian!.relationship,
+                        // 📄 Datos propios del apoderado
+                        documentType : dto.guardian!.documentType,
+                        documentNumber: dto.guardian!.documentNumber,
+                        //relationship : dto.guardian!.relationship
+                        // 🏷️ No asignamos guardianCode aqui
+                        // 🧠 El código se genera después del primer "save()", porque necesitamos que PostgreSQL genere primero el UUID
                     });
 
-                    // 💾 Persistimos el apoderado en la base de datos
-                    await guardianRepo.save(guardian);
+                    // 💾 Guardamos para obtener el UUID generado por PostgreSQL
+                    const savedGuardian = await guardianRepo.save(guardian);
+
+                    // 🏷️ Generamos un código amigable basado en el UUID
+                    savedGuardian.guardianCode = CodeGenerator.generate('GUA', savedGuardian.id);
+
+                    // 💾 Actualizamos el apoderado agregando el código generado
+                    await guardianRepo.save(savedGuardian);
 
                 }
             
@@ -668,9 +831,5 @@ export class AuthService {
             throw new InternalServerErrorException('Error al registrar el usuario'); // 🧨 500: fallo interno genérico
         }
     }
-
-
-
-
 
 }

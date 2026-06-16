@@ -1,6 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "src/app.module";
-import { School } from "src/entities/school.entity";
+import { School, SchoolStatus } from "src/entities/school.entity";
 import { DataSource, Repository } from "typeorm";
 
 // ejecutar seed => npm run seed:school
@@ -22,7 +22,7 @@ async function run(){
     const defaultSchool = {
         name : 'Colegio Demo',
         code : 'DEFAULT',
-        isActive : true,
+        status : SchoolStatus.ACTIVE
     };
 
     // 🔎 Buscamos si ya existe por código (clave única lógica)

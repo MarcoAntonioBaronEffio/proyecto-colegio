@@ -3,6 +3,10 @@ import { ClassroomService } from './classroom.service';
 import { CreateClassroomDto } from './dto/create-classroom.dto';
 import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 import { Classroom } from 'src/entities/classroom.entity';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { UserRole } from 'src/common/enums/user-role.enum';
+import { UpdateClassroomDto } from './dto/update-classroom.dto';
+import { ChangeClassroomsStatusDto } from './dto/change-status-classroom.dto';
 
 // 🧭 Controlador principal para manejar rutas relacionadas a "classrooms"
 // 🛣️ La ruta base para todos los endpoints de este controlador será /classrooms
@@ -23,9 +27,9 @@ export class ClassroomController {
     ){}
 
     // ✅ POST
+    @Roles(UserRole.ADMINISTRATOR)
     @Post() // 📤 Endpoint POST -> /classroom
-    //@UseGuards(JwtAuthGuard, RolesGuard) // 🛡️ (Opcional) Primero autentica y luego valida roles
-    // 📦 Extraemos el body y lo validamos con el DTO
+    
     async create(
         @Body()dto : CreateClassroomDto, // 📤 Datos que llegan desde el frontend
     ) : Promise<ApiResponse<Classroom>>{ // 📤 Respuesta tipada con el aula creada
@@ -46,6 +50,7 @@ export class ClassroomController {
     // 🔥 Una función asíncrona inicia una operación cuyo resultado llegará en el futuro
     // 🔥 La Promise representa ese resultado futuro: puede resolverse (fullfilled ✅) o fallar (rejected ❌)
     // 🔹 await pausa esta función hasta recibir el valor final de la Promise
+    @Roles(UserRole.ADMINISTRATOR)
     @Get() // 🏷️ Ruta: GET /classroom
     async findAll() : Promise<ApiResponse<Classroom[]>>{
 
@@ -56,14 +61,83 @@ export class ClassroomController {
         // ⌛️ Estado inicial: pending
         // ✅ Si todo sale bien -> fulfilled
         // ❌ Si ocurre un error -> rejected
-        const classroom = await this.classroomService.findAll();
+        const classrooms = await this.classroomService.findAll();
 
         // 📨 Retornamos respuesta uniforme
         return{
             success: true, // ✅ Operación exitosa
             message: 'Aulas obtenidas correctamente', // 🗒️ Mensaje descriptivo
-            data: classroom, // 📦 Aula encontrada
+            data: classrooms, // 📦 Aula encontrada
         }
+    }
+
+    // 🔍 OBTENER AULA POR ID 
+    // 👉 GET /classrooms/:id
+    @Get(':id')
+    async findOne(
+        // 🆔 Capturamos ID desde URL
+        @Param('id') id: string
+    ): Promise<ApiResponse<Classroom>>{
+
+        // 🚀 Buscamos el aula
+        const classroom = await this.classroomService.findOne(id);
+
+        // 📨 Retornamos respuesta uniforme
+        return{
+            success: true,
+            message: 'Aula encontrada',
+            data: classroom
+        };
+    }
+
+    // ✏️ ACTUALIZAR AULA
+    // 🏷️ PATCH /classroom/:id
+    @Patch(':id')
+    async update(
+        // 🆔 ID desde URL
+        @Param('id') id: string,
+        // 📦 Datos nuevos
+        @Body() dto : UpdateClassroomDto
+    ) : Promise<ApiResponse<Classroom>>{
+
+        // 🚀 Actualizamos aula
+        const updated = await this.classroomService.update(
+            id, dto
+        );
+
+        // 📨 Retornamos respuesta uniforme
+        return{
+            success : true,
+            message: 'Aula actualizada correctamente',
+            data: updated
+        };
+    }
+
+    // 🔄 CAMBIAR ESTADO DEL AULA
+    // 🏷️ PATCH /classroom/:id/status
+    @Patch(':id/status')
+    async changeStatus(
+        // 🆔 ID del aula
+        @Param('id') id: string,
+        // 📦 Body validado
+        @Body() dto : ChangeClassroomsStatusDto
+    ) : Promise<ApiResponse<Classroom>>{
+
+        // llamamos al servicio
+        const updated = await this.classroomService.changeStatus(
+            id, 
+            dto.status
+        );
+
+        // 📨 Retornamos respuesta uniforme
+        return{
+            // ✅ Operación exitosa
+            success: true,
+            // 📄 Mensaje
+            message : 'Estado del aula actualizado correctamente',
+            // 📦 Aula actualizada
+            data : updated
+        };
     }
 
     // ✅ DELETE /classrooms/:id (desactivar aula por UUID)
@@ -79,12 +153,9 @@ export class ClassroomController {
         // 📨 Respuesta uniforme
         return{
             success: true, // ✅ Operación exitosa
-            message: 'Aula desactivada correctamente', // 🗒️ Mensaje descriptivo
+            message: 'Aula eliminada correctamente', // 🗒️ Mensaje descriptivo
             data: removed, // 📦 Aula desactivada
         }
-
-
-
     }
 
 }

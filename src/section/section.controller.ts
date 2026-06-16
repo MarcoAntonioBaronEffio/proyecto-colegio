@@ -1,9 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { SectionService } from './section.service';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 import { Section } from 'src/entities/section.entity';
 import { JwtAuthGuard } from 'src/auth/jwt-auth-guard';
+import { UpdateSectionDto } from './dto/update-section.dto';
+import { ChangeSectionsStatusDto } from './dto/change-status-sections.dto';
+
+// ‼️ FALTA DOCUMENTAR
 
 // 🧭 Controlador principal para manejar rutas relacionadas a "sections"
 // 🛣️ La ruta base para todos los endpoints de este controlador será /sections
@@ -90,6 +94,79 @@ export class SectionController {
             data: section,
         }
 
+    }
+
+    // ✏️ ACTUALIZAR SECCIÓN
+    // 🏷️ PATCH /sections/:id
+    @Patch(':id')
+    async update(
+        // 🆔 ID recibido desde la URL
+        @Param('id') id : string,
+        // 📦 Datos nuevos para actualizar
+        @Body() dto: UpdateSectionDto
+    ) : Promise<ApiResponse<Section>>{
+
+        // 🚀 Llamamos al servicio para actualizar
+        const updated = await this.sectionService.update(
+            id, dto
+        );
+
+        // 📨 Retornamos respuesta uniforme
+        return{
+            success : true, // ✅ Operación exitosa
+            message : 'Sección actualizada correctamente', // 📄 Mensaje para el frontend
+            data : updated // 📦 Sección actualizada
+        }
+    }
+
+    // 🔄 Cambiar estado de la sección
+    // 🏷️ PATCH / sections/:id/status
+    @Patch(':id/status')
+    async changeStatus(
+        // 🆔 ID de la sección
+        @Param('id') id : string,
+        // 📦 Body validado
+        @Body() dto : ChangeSectionsStatusDto
+    ): Promise<ApiResponse<Section>>{
+
+
+        // 🚀 Llamamos al servicio
+        const updated = await this.sectionService.changeStatus(
+            id, 
+            dto.status
+        );
+
+        // 📨 Retornamos respuesta uniforme
+        return{
+            // ✅ Operación exitosa
+            success: true,
+            // 📄 Mensaje descriptivo
+            message: 'Estado de la sección actualizado correctamente',
+            // 📦 Sección actualizada
+            data : updated
+        }
+    }
+
+    // 🗑️ Eliminar sección por UUID
+    // 🏷️ @Delete(':id') -> ruta dinámica: /sections/UUID
+    @Delete(':id')
+    async remove(
+        // 🆔 Capturamos el id desde la URL
+        @Param('id') id : string,
+    ): Promise<ApiResponse<Section>>{
+
+        // 🚀 Llamos al servicio para eliminar la sección
+        const removed = await this.sectionService.remove(id);
+
+        // 📨 Respuesta uniforme
+        return{
+            // ✅ Operación exitosa
+            success: true,
+            // 📄 Mensaje descriptivo
+            message: 'Sección eliminada correctamente',
+            // 📦 Sección eliminada
+            data : removed
+        }
     }
  
 }
