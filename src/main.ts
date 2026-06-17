@@ -120,7 +120,14 @@ async function bootstrap() {
   // process.env.PORT -> intenta usar el puerto que venga en las variables de entorno (útil en despliegues en la nube como Heroku)
   // ?? 3000 -> si no encuentra proccess.env.PORT, por defecto usará el puerto 3000.
   // await -> espera a que el servidor está escuchando antes de continuar.
-  await app.listen(process.env.PORT ?? 3000);
+  //await app.listen(process.env.PORT ?? 3000);
+
+  // 📌 FALTA DOCUMENTAR
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+
+  console.log('🚀 PORT:', port);
+  console.log('🚀 ENV PORT:', process.env.PORT)
 }
 
 // 🔹 Llama a la función boostrap(), para que la aplicación NestJS arranque 🚀.
