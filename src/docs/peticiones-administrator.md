@@ -1,6 +1,7 @@
 ✅ CREAR ADMINISTRADOR
 
 POST -> http://localhost:3000/api/auth/register
+POST -> https://proyecto-colegio-production.up.railway.app/api/auth/register
 
  
 ➡️ petición

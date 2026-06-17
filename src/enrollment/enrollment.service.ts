@@ -1,11 +1,10 @@
 import { BadRequestException, ConflictException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SchoolYear } from 'src/entities/school-year.entity';
+import { SchoolYear, SchoolYearStatus } from 'src/entities/school-year.entity';
 import { Section, SectionStatus } from 'src/entities/section.entity';
 import { Student } from 'src/entities/student.entity';
 import { Repository } from 'typeorm';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
-import { SchoolYearStatus } from 'src/school-years/school-year-status.enum';
 import { Enrollement } from 'src/entities/enrollment.entity';
 
 @Injectable()

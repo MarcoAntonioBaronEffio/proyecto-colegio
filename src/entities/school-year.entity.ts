@@ -16,7 +16,20 @@
 
 import { Grade } from "./grade.entity";
 import { School } from "./school.entity";
-import { SchoolYearStatus } from "src/school-years/school-year-status.enum";
+
+export enum SchoolYearStatus {
+
+    // 📝 Aún no empieza (planificado)
+    PLANNED = 'PLANNED',
+
+    // 🚀 Año escolar en curso
+    ACTIVE = 'ACTIVE',
+
+    // 🔒 Año escolar cerrado definitivamente
+    CLOSED = 'CLOSED',
+
+
+}
 
 // 🧾 @Entity('school_years'):
 // - 👉 Le dice a TypeOrm que esta clase representa una tabla de la base de datos

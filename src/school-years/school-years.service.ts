@@ -7,10 +7,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm'; // 🧩 Permite a Nest inyectar un repositorio TypeOrm
 import { QueryFailedError, Repository } from 'typeorm'; // 🗃️ Clase genérica para acceder a métodos CRUD
-import { SchoolYear } from 'src/entities/school-year.entity'; // 🏫 Entidad que representa la tabla 'school_years' 
+import { SchoolYear, SchoolYearStatus } from 'src/entities/school-year.entity'; // 🏫 Entidad que representa la tabla 'school_years' 
 import { CreateSchoolYearDto } from './dto/create-school-year.dto'; // 🧾 DTO que define la forma esperada de los datos de creación
 import { School } from 'src/entities/school.entity';
-import { SchoolYearStatus } from './school-year-status.enum';
+
 import { UpdateSchoolYearDto } from './dto/update-school-year.dto';
 
 // 💉 Hace que esta clase pueda ser inyectada en controladores u otros servicios
@@ -31,16 +31,17 @@ export class SchoolYearsService {
     ){}
 
     // 🧠 Método para crear un nuevo año escolar
-    // 📤 Devuelve una promesa que resolverá un objeto SchoolYear (la entidad creada) 
+    // 📤 Devuelve el año escolar recién creado
     async create(dto: CreateSchoolYearDto) : Promise<SchoolYear>{
         try{
 
-        // ✅0️⃣ Buscamos el colegio ÚNICO (DEFAULT) para ligar el año escolar automáticamente
+        // ✅0️⃣ Buscamos el único colegio registrado en el sistema
+        // 👉 Todos los años escolares permanecerán a este colegio
         const school = await this.schoolRepo.findOne({
             where: {code: 'DEFAULT'}, // 🏫 Buscamos el colegio sembrado por tu seed (code fijo) 
         });
 
-        // 🚫 Si no existe, significa que no corriste el seed o se borró el registro
+        // 🚫 Si no existe el colegio, significa que no corriste el seed o se borró el registro
         if(!school){
             // ❌ Lanzamos 404 porque "no existe el recurso requerido para continuar"
             throw new NotFoundException(
@@ -48,29 +49,27 @@ export class SchoolYearsService {
             );
         }
 
-        // 🔎 Comprobamos si ya existe un año con el mismo número (para evitar duplicados)
-        // ✅ Como tu unique ideal es (school + year) , validamos con ambos
+        // 🔎1️⃣ Verificamos que no exista otro año escolar con el mismo año
+        // 👉 Gracias a @Unique(['year']) no permitimos duplicados
         const exists = await this.repo.findOne({
             where: {
                 year: dto.year, // 📅 Año
-                school : {id : school.id}, // 🏫 Mismo colegio  
             }});
 
-        // 🚫 Si existe, lanzamos un error 400 Confict
+        // 🚫 Si existe el año, lanzamos un error 400 Confict
         if(exists){
-            throw new ConflictException(`El año ${dto.year} ya existe`);
+            throw new ConflictException(`El año escolar ${dto.year} ya existe`);
         }
  
 
-        // 🏗️ Creamos el nuevo año escolar como PLANNED (planificado)
-        // ✅ No tocamos el año ACTIVE actual; solo lo planificamos
+        // 🏗️2️⃣ Creamos la entidad
         const entity = this.repo.create({
-            ...dto,          // 📦 Copiamos todas las propiedades del DTO (año, fechas, etc). 
-            status: SchoolYearStatus.PLANNED,  // 📝 Estado por defecto realista
-            school : { id: school.id }, // 🏫  Relación ManyToOne por id
+            ...dto,                            // 📦 Copiamos todas las propiedades del DTO (año, fechas, etc). 
+            status: SchoolYearStatus.PLANNED,  // 📝 Todo año nuevo inicia como PLANIFICADO
+            school : school,                   // 🏫 Asociamos automáticamente el único colegio 
         });
         
-        // 💾 Guardamos la entidad en la base de datos y devolvemos el resultado completo.
+        // 💾 3️⃣ Guardamos y devolvemos
         return await this.repo.save(entity);
 
         // 🔹 Atrapamos el error

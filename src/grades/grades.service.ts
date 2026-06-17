@@ -14,8 +14,8 @@ import { QueryFailedError, Repository } from 'typeorm';
 import { CreateGradeDto } from './dto/create-grade.dto';
 // 🏫 Entidad "SchoolYear" -> representa la tabla de años escolares en la base de datos 
 // Se importa porque los grados tienen una relación ManyToOne con SchoolYear
-import { SchoolYear } from 'src/entities/school-year.entity';
-import { SchoolYearStatus } from 'src/school-years/school-year-status.enum';
+import { SchoolYear, SchoolYearStatus } from 'src/entities/school-year.entity';
+//import { SchoolYearStatus } from 'src/school-years/school-year-status.enum';
 import { UpdateGradeDto } from './dto/update-grade.dto';
 
 @Injectable()
