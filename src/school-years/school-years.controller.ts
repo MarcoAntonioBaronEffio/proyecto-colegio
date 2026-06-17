@@ -67,6 +67,9 @@ export class SchoolYearsController {
     // - Ideal para mostrarlos en el panel del administrador.
     @Get() // 📥 Escucha peticiones HTTP GET en /school-years
     async findAll() : Promise<ApiResponse<SchoolYear[]>>{
+
+        console.log('🚀 Entró al Controller')
+
         // 🔎 Llamamos al servicio para traer todos los años escolares.
         const years = await this.service.findAll();
 
