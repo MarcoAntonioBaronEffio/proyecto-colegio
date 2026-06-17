@@ -2,9 +2,11 @@ import { Controller, Get } from "@nestjs/common";
 import { RolesServices } from "./roles.services";
 import { ApiResponse } from "src/common/interfaces/api-response.interface";
 import { Rol } from "src/entities/rol.entity";
+import { Public } from "src/common/decorators/public.decorator";
 
 // 🔹 @Controller -> Convierte esta clase en un controlador HTTP.
 // 'roles' será el prefijo en la URL. Ejemplo: http://localhost:3000/api/roles
+@Public()
 @Controller('roles')
 export class RolesController{
 
