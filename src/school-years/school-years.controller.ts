@@ -20,6 +20,7 @@ import { SchoolYear } from 'src/entities/school-year.entity';
 import { UpdateSchoolYearDto } from './dto/update-school-year.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
+import { Public } from 'src/common/decorators/public.decorator';
 
 
 // 🔐 Autenticación + Autorización por roles
@@ -30,6 +31,7 @@ import { UserRole } from 'src/common/enums/user-role.enum';
 
 // 📚 @Controller('school-years') -> Prefijo de ruta del controlador:
 // - Todas las rutas aquí comenzarán con /school-years (ej: POST /school-years, GET /school-years/:id, etc.)
+@Public()
 @Controller('school-years')
 export class SchoolYearsController {
     // 🧩 Inyección de dependencias:
