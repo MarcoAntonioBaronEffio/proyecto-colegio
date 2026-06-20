@@ -5,9 +5,9 @@ import { CreateSchoolYearDto } from "./create-school-year.dto";
 // ✅ Usamos "extends" para heredar la estructura del DTO de creación
 // ✅ Pero gracias a PartialType(...) todas las propiedades heredadas se convertirán automáticamente en opciones
 
-export class UpdateSchoolYearDto extends PartialType(CreateSchoolYearDto){
+export class UpdateSchoolYearDto 
 
-}
+   extends PartialType(CreateSchoolYearDto){}
 
 
 // 🔹 La clase base tiene esto:

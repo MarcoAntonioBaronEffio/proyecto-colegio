@@ -35,10 +35,12 @@ export class SchoolYearsService {
     async create(dto: CreateSchoolYearDto) : Promise<SchoolYear>{
         try{
 
-        // ✅0️⃣ Buscamos el único colegio registrado en el sistema
+        // ✅1️⃣ Buscamos el único colegio DEFAULT
         // 👉 Todos los años escolares permanecerán a este colegio
         const school = await this.schoolRepo.findOne({
-            where: {code: 'DEFAULT'}, // 🏫 Buscamos el colegio sembrado por tu seed (code fijo) 
+            where: {
+                code: 'DEFAULT',
+            }, // 🏫 Buscamos el colegio sembrado por tu seed (code fijo) 
         });
 
         // 🚫 Si no existe el colegio, significa que no corriste el seed o se borró el registro
@@ -49,7 +51,7 @@ export class SchoolYearsService {
             );
         }
 
-        // 🔎1️⃣ Verificamos que no exista otro año escolar con el mismo año
+        // 🔎2️⃣ Verificamos que no exista otro año escolar con el mismo año
         // 👉 Gracias a @Unique(['year']) no permitimos duplicados
         const exists = await this.repo.findOne({
             where: {
@@ -57,19 +59,23 @@ export class SchoolYearsService {
             }});
 
         // 🚫 Si existe el año, lanzamos un error 400 Confict
+        // 🚫 No permitimos años duplicados
         if(exists){
             throw new ConflictException(`El año escolar ${dto.year} ya existe`);
         }
  
 
-        // 🏗️2️⃣ Creamos la entidad
+        // 🏗️3️⃣ Creamos la entidad
         const entity = this.repo.create({
             ...dto,                            // 📦 Copiamos todas las propiedades del DTO (año, fechas, etc). 
-            status: SchoolYearStatus.PLANNED,  // 📝 Todo año nuevo inicia como PLANIFICADO
-            school : school,                   // 🏫 Asociamos automáticamente el único colegio 
+            status: SchoolYearStatus.PLANNED,  // 📝 Todo año escolar nuevo inicia como PLANIFICADO
+            // 🏫 Asociamos el colegio DEFAULT al año escolar
+            // 👉 La propiedad "school" es una relación ManyToOne
+            // 👉 TypeOrm tomará automáticamente el id del colegio y lo almacenará en la columna FK "school_id"
+            school : school,                   
         });
         
-        // 💾 3️⃣ Guardamos y devolvemos
+        // 💾 4️⃣ Guardamos y devolvemos el registro creado
         return await this.repo.save(entity);
 
         // 🔹 Atrapamos el error
@@ -112,7 +118,10 @@ export class SchoolYearsService {
     // 1️⃣ id -> el identificador del año escolar que queremos modificar
     // 2️⃣ dto -> un objeto con los nuevos datos que podrían llegar para actualizar
     // 📌 Devuelve una Promesa que, si todo sale bien,  resolverá con un objeto SchoolYear actualizado
-    async update(id : string, dto : UpdateSchoolYearDto) : Promise<SchoolYear>{
+    async update(
+        id : string, 
+        dto : UpdateSchoolYearDto
+    ) : Promise<SchoolYear>{
 
         // 🛡️ Iniciamos un bloque try
         // 📌 Todo el proceso de actualización irá dentro de este bloque
@@ -236,37 +245,20 @@ export class SchoolYearsService {
         }
     }
 
-    // 📋 Método para obtener todos los años escolares registrados del colegio DEFAULT
+    // 📋 Método para obtener todos los años escolares registrados 
     async findAll() : Promise<SchoolYear[]>{
         try{
 
-            //console.log('🚀 Entró al Service')
-            // ✅ Buscamos el colegio DEFAULT
-            const school = await this.schoolRepo.findOne({
-                where: {code : 'DEFAULT'},
-            });
-
-            // 🚫 Si no existe el colegio, no tiene sentido listar
-            if(!school){
-                throw new NotFoundException(
-                    'No existe el colegio DEFAULT. Ejecuta: npm run seed:school',
-                );
-            }
-
-            // 🔎 Traemos todos los años del colegio
+            // 🔎 Obtenemos todos los años escolares
+            // ⬇️ Ordenados desde el más reciente hasta el más antiguo
             const years = await this.repo.find({
-
-                //where: {school: {id: school.id}}, // 🏫 Filtramos por colegio
-
-                order: {year: 'DESC'}, // ⬇️ Orden: más reciente primero
+                order: {
+                    year: 'ASC',
+                }, 
             });
 
-            // ❌ Si no hay registros
-            if(years.length === 0){
-                throw new NotFoundException('No hay años escolares registrados');
-            }
-
-            // ✅ Devolvemos lista
+            // ✅ Devolvemos la lista
+            // 👉 Si no existen registros, simplemente retornará []
             return years;
 
         }catch(error){
@@ -484,7 +476,6 @@ export class SchoolYearsService {
 
        
     } 
-
 
     // 🔒 CLOSE : cerrar un año (pasa a CLOSED)
     async close (id: string) : Promise <SchoolYear>{
