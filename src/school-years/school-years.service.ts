@@ -240,7 +240,7 @@ export class SchoolYearsService {
     async findAll() : Promise<SchoolYear[]>{
         try{
 
-            console.log('🚀 Entró al Service')
+            //console.log('🚀 Entró al Service')
             // ✅ Buscamos el colegio DEFAULT
             const school = await this.schoolRepo.findOne({
                 where: {code : 'DEFAULT'},
@@ -255,7 +255,9 @@ export class SchoolYearsService {
 
             // 🔎 Traemos todos los años del colegio
             const years = await this.repo.find({
-                where: {school: {id: school.id}}, // 🏫 Filtramos por colegio
+
+                //where: {school: {id: school.id}}, // 🏫 Filtramos por colegio
+
                 order: {year: 'DESC'}, // ⬇️ Orden: más reciente primero
             });
 
