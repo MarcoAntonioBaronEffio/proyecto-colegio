@@ -42,7 +42,8 @@ export class SchoolYearsController {
     // - Endpont: POST http://localhost:3000/api/school-years
     // - Body: CreateSchoolYearDto (ej: {year, startsOn?, endsOn?})
     // - Seguridad (recomendada): JWT + Roles('admin')
-    @Roles(UserRole.ADMINISTRATOR)
+    @Public()
+    //@Roles(UserRole.ADMINISTRATOR)
     @Post()
     //@UseGuards(JwtAuthGuard, RolesGuard) // 🛡️ Primero autentica (JWT), luego autoriza (roles).
     //@Roles('admin')                      // 👑 Solo usuarios con rol "admin".
