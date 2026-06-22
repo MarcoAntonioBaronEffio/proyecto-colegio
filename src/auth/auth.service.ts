@@ -187,12 +187,12 @@ export class AuthService {
     // ⭐️ Si algo falla en cualquier paso, TODO se revierte (rollback) 🔁🧨
     //    "Todo se guarda o nada se guarda" ✅ ❌
     // 🔹 dto : RegisterDto -> trae todo lo del CreateUserDto (email, firstName, lastName, password, phone, avatarUrl, roleId) 
-    async register(dto: RegisterDto) { // ✅ Función async: devuelve una Promise y usamos awair dentro
+    async register(dto: RegisterDto) { // ✅ Función async: devuelve una Promise y usamos await dentro
         try{ // 🛡️ try: capturamos errores para responder con excepciones claras (400/409/500)
 
 
             // 💫 Usa transacciones cuando varias operaciones deben comportarse como una sola unidad lógica: 
-            // Por ejemplo: crear usuario + estudiante | crear usuario + administrador | matrícula + horario
+            // 🔥 Por ejemplo: crear usuario + estudiante | crear usuario + administrador | matrícula + horario
             // 🧾 Iniciamos una transacción con TypeORM:
             // 🔹 DataSource -> crea una transacción -> te entrega "manager"
             // 🔹 manager -> te deja usar repositorios dentro de esa transacción
@@ -204,7 +204,7 @@ export class AuthService {
  
             // ✅ Validación mínima
             if(!dto.roleName){ // 🚫 Si el cliente NO envía roleName (ej: "STUDENT", "ADMINISTRATOR", etc.)
-                throw new BadRequestException('Debes enviar roleName'); // ❌ 400: petición mal formada
+                throw new BadRequestException('Debes enviar el campo "roleName"'); // ❌ 400: petición mal formada
             }
 
             // ⭐️ Recordatorio mental:
