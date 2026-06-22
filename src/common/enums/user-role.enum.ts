@@ -1,23 +1,33 @@
 // 🧩 Exportamos un enum llamado UserRole
-// 🔹 Un enum es como una lista de valores constantes
-// 👉 Sirve para evitar usar strings "sueltos" en todo el proyecto
-// 👉 Mejora la seguridad y evita errores de tipeo 
+// 🔹 Un enum es una colección de valores constantes
+// 👉 Evita usar strings repetidos en todo el proyecto
+// 👉 Reduce errores de escritura y mejora el autocompletado
 export enum UserRole{
+    
+
+    // 🏢 SYSTEM_ADMIN
+    // 👉 Administrador global de la plataforma Saas
+    // 👉 Puede crear colegios y administrar todo el sistema
+    SYSTEM_ADMIN = 'SYSTEM_ADMIN',
 
     // 👑 ADMINISTRATOR
-    // 👉 Representa al usuario con mayor privilegio (admin del sistema)
+    // 👉 Administrador de un colegio específico
+    // 👉 Gestiona usuarios, años escolares, grados, aula, etc
     ADMINISTRATOR = 'ADMINISTRATOR',
 
     // 👨‍🏫 TEACHER
-    // 👉 Puede gestionar clases, notas, asistencias
+    // 👉 Docente del colegio
+    // 👉 Gestiona notas, asistencias y actividades académicas
     TEACHER = 'TEACHER',
 
     // 🎓 STUDENT
-    // 🔹 Acceso limitado (ver notas, tareas, etc)
+    // 👉 Estudiante matriculado en el colegio
+    // 👉 Puede consultar información académica
     STUDENT = 'STUDENT',
 
     // 👨‍👩‍👧 Guardian
-    // 👉 Puede ver información del estudiante
+    // 👉 Apoderado o tutor del estudiante
+    // 👉 Puede consulta información de sus hijos
     GUARDIAN = 'GUARDIAN'
 
 }

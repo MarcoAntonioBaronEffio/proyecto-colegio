@@ -8,7 +8,8 @@ import {
     IsOptional,  // 🟡 Indica que un campo es opcional (no es obligatorio en la solicitud)
     IsDateString, // 📆 Valida que el valor tenga formato de fecha válido (YYYY-MM-DD)
     Min,
-    Max
+    Max,
+    IsNotEmpty
  } from "class-validator";
 
 // 🎓 Creamos la clase CreateSchoolYearDto
@@ -17,6 +18,7 @@ export class CreateSchoolYearDto{
 
 // 🎓 AÑO ESCOLAR
 // 🧩 Campo: year (año escolar)
+@IsNotEmpty({message: 'El año escolar es obligatorio'})
 // 🔹 @IsInt -> valida que el valor sea un número entero
 // 🔹 Si se envía un decimal o un valor no entero, la validación fallará
 @IsInt({message : 'El año debe ser entero. Ej: 2026'})

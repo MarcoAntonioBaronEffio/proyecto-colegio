@@ -5,6 +5,7 @@ import { Transform, Type } from "class-transformer";
 import { AdministratorDto } from "./create-administrator.dto";
 import { TeacherDto } from "./create-teacher.dto";
 import { GuardianDto } from "./create-guardian.dto";
+import { SystemAdministratorDto } from "./create-system-administrator.dto";
 
 export enum RoleName {
     GUARDIAN = 'GUARDIAN',
@@ -40,7 +41,13 @@ export class RegisterDto extends CreateUserDto {
     })
     roleName!: RoleName;
     
-
+    // ----------------------------------------------------------------------
+    // 👑 SYSTEM ADMINISTRADOR
+    // ----------------------------------------------------------------------
+    @IsOptional()
+    @Type(() => SystemAdministratorDto)
+    @ValidateNested()
+    systemAdministrator? : SystemAdministratorDto;
 
 
     // ----------------------------------------------------------------------

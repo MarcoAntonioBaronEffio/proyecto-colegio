@@ -4,6 +4,16 @@ import { Student } from "./student.entity";
 import { Administrator } from "./administrator.entity";  
 import { Teacher } from "./teacher.entity";
 import { Guardian } from "./guardian.entity";
+import { SystemAdministrator } from "./system_administrator.entity";
+
+// 🔗 RELACIONES UNO A UNO (PERFILES DEL USUARIO)
+
+// 💡 La entidad User contiene la información común para todos los usuarios del sistema:
+// 🔹 Nombre, correo, contraseña, rol
+// 👉 Cada perfil almacena información específica según el tipo de usuario:
+// 👑 SystemAdministrator, 👨‍💼 Administrator, 🧑‍🏫 Teacher, 🎓 Student, 🧑‍🧑‍🧒‍🧒 Guardian
+
+// ⚠️ Un usuario solo debería tener uno de estos perfiles
 
 
 // 📊 Estados posibles de un usuario
@@ -106,8 +116,14 @@ export class User {
     //@Column({type : 'boolean', default: true})
     //isActive! : boolean;
     
+    // 📊 Estado actual del usuario dentro del sistema
+    // 👉 Permite habilitar o deshabilitar cuentas sin eliminarlas físicamente
+    // 👉 Muy útil para mantener historial y relaciones en la base de datos
 
-    @Column({
+    // 🔹 Ejemplo:
+    // ✅ ACTIVE   -> Puede iniciar sesión y usar el sistema
+    // ❌ INACTIVE -> Cuenta suspendida o dado de baja
+    @Column({ 
         type : 'enum',
         enum : UserStatus,
         default : UserStatus.ACTIVE
@@ -141,6 +157,21 @@ export class User {
     @OneToOne(() => Student, (student) => student.user)
     student? : Student; 
 
+    // ---------------------------
+
+    // 👑 Relación User <-> SystemAdministrator
+    // 👉 Un User puede representar a un superAdministrador de la plataforma
+    // 👉 Un SystemAdministrator tiene asociado a un único User
+    // User --------- SystemAdministrator
+    //  1       ↔️           1
+    // 💡 Este perfil tiene privilegios globales sobre todo el Saas
+    // 👉 Puede crear colegios
+    // 👉 Puede administrar múltiples instituciones
+    // 👉 Puede generar administradores de colegios
+
+    // ❓ Es opcional porque la mayoría de usuarios NO serán superAdministradores
+    @OneToOne(() => SystemAdministrator, (systemAdministrator) => systemAdministrator.user)
+    systemAdministrator?: SystemAdministrator;
     // ---------------------------
 
     // 👨‍💼 Relación User <-> Administrator
