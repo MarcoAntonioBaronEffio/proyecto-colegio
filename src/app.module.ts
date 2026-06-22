@@ -23,6 +23,7 @@ import { Section } from './entities/section.entity';
 import { Classroom } from './entities/classroom.entity';
 import { EnrollmentModule } from './enrollment/enrollment.module';
 import { CourseService } from './course/course.service';
+import { SystemAdministrator } from './entities/system_administrator.entity';
 
 
 
@@ -74,7 +75,7 @@ import { CourseService } from './course/course.service';
         //Entonces, esto carga automáticamente todas las entidades que definamos ((clases con @Entity) que representan
         //tablas en la BD)e
         autoLoadEntities: true, 
-        entities: [User, Rol, Administrator,  Student, Teacher, Guardian, School, SchoolYear, Grade, Section, Classroom ],
+        entities: [User, Rol, SystemAdministrator, Administrator,  Student, Teacher, Guardian, School, SchoolYear, Grade, Section, Classroom ],
         //synchronize: true -> ⚠️ Solo en desarrollo
         //Hace que TypeORM cree/modifique las tablas automáticamente basándose en nuestras entidades.
         //En producción se recomienda usar migraciones para más control.
