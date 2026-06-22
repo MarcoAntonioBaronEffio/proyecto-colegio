@@ -1,5 +1,6 @@
 import { Transform } from "class-transformer";
 import { IsEnum, IsNotEmpty, IsString, MaxLength } from "class-validator";
+import { DocumentType } from "src/common/enums/document-type.enum";
 
 export class SystemAdministratorDto{
 
