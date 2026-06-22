@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { User } from "./users.entity";
+import { DocumentType } from "src/common/enums/document-type.enum";
 
 // 🔒 Evita que se repita la combinación: documentType + documentNumber
 // 🔹 Ejemplos:

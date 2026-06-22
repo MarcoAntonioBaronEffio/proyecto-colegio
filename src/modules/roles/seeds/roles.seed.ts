@@ -42,6 +42,11 @@ async function run(){
     //✅  Lista de roles base del sistema que queremos insertar sólo si no existen
     const defaultRoles = [
         {
+            name : 'SYSTEM_ADMINISTRATOR',
+            description: 'Administrador general del SaaS',
+            status: RoleStatus.ACTIVE
+        },
+        {
             name : 'GUARDIAN', 
             description : 'Apoderado o responsable del estudiante',
             status : RoleStatus.ACTIVE
@@ -72,7 +77,10 @@ async function run(){
     for(const rolData of defaultRoles){
     // 🔎 Buscamos si ya existe un rol con ese nombre en la base de datos.
     // - findOne({where: {nombre: rolData.nombre}}) verifica coincidencia exacta.
-    const exist = await rolRepo.findOne({where:{name: rolData.name}});
+    const exist = await rolRepo.findOne(
+        {where:{
+            name: rolData.name
+        }});
 
     if(!exist){
         // 🟢 Si no existe, lo guardamos en la base de datos.
