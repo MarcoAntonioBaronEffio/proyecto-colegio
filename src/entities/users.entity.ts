@@ -26,6 +26,16 @@ export enum UserStatus{
     INACTIVE = 'INACTIVE'
 }
 
+export enum RoleName {
+    GUARDIAN = 'GUARDIAN',
+    STUDENT = 'STUDENT',
+    TEACHER = 'TEACHER',
+    //ASSISTANT = 'ASSISTANT',
+    ADMINISTRATOR = 'ADMINISTRATOR',
+    SYSTEM_ADMINISTRATOR = 'SYSTEM_ADMINISTRATOR'
+}
+
+
 // ✅ Como estamos armando un sistema que va a crecer, autenticar usuarios de diferentes roles , UUID es la 
 // opción más profesional y segura
 

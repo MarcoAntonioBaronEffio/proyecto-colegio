@@ -17,9 +17,7 @@ import { CreateSchoolYearDto } from './dto/create-school-year.dto';
 import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 // 🧩 Entidad para tipar las respuestas 'data'
 import { SchoolYear } from 'src/entities/school-year.entity';
-import { UpdateSchoolYearDto } from './dto/update-school-year.dto';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { UserRole } from 'src/common/enums/user-role.enum';
+import { UpdateSchoolYearDto } from './dto/update-school-year.dto'; 
 import { Public } from 'src/common/decorators/public.decorator';
 
 

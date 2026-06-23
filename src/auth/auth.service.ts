@@ -12,7 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 // ✅ Importamos bcrypt para comparar contraseñas en texto plano vs hash
 import * as bcrypt from 'bcrypt'
-import { RegisterDto, RoleName } from 'src/users/dto/register.dto';
+import { RegisterDto } from 'src/users/dto/register.dto';
 import { DataSource, QueryFailedError} from 'typeorm';
 import { Rol, RoleStatus } from 'src/entities/rol.entity'; 
 import { Student } from 'src/entities/student.entity';
@@ -21,9 +21,9 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { Teacher } from 'src/entities/teacher.entity';
 import { Guardian } from 'src/entities/guardian.entity';
 import { CodeGenerator } from 'src/common/utils/code-generator.util';
-import { UserRole } from 'src/common/enums/user-role.enum';
 import { SystemAdministrator } from 'src/entities/system_administrator.entity';
 import { AuthUser } from './interfaces/auth-user.interface';
+import { RoleName } from 'src/entities/users.entity';
 
 
 // 🔹 Indicamos que esta clase es un "servicio" inyectable en NestJS.
@@ -81,7 +81,7 @@ export class AuthService {
                 sub : user?.id, // Ej: "uuid-del-usuario"
                 email : user?.email, // Ej: "correo@ejemplo.com"
                 roleId : user?.role.id,  // Ej: "uuid-del-rol" , rol lo traemos porque usamos eager: true
-                roleName : user?.role.name as UserRole // Ej: "ADMINISTRATOR", "STUDENT"
+                roleName : user?.role.name as RoleName // Ej: "ADMINISTRATOR", "STUDENT"
             }
 
             return authUser;

@@ -4,9 +4,9 @@ import { CreateClassroomDto } from './dto/create-classroom.dto';
 import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 import { Classroom } from 'src/entities/classroom.entity';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { UserRole } from 'src/common/enums/user-role.enum';
 import { UpdateClassroomDto } from './dto/update-classroom.dto';
 import { ChangeClassroomsStatusDto } from './dto/change-status-classroom.dto';
+import { RoleName } from 'src/common/enums/user-role.enum';
 
 // 🧭 Controlador principal para manejar rutas relacionadas a "classrooms"
 // 🛣️ La ruta base para todos los endpoints de este controlador será /classrooms
@@ -27,7 +27,7 @@ export class ClassroomController {
     ){}
 
     // ✅ POST
-    @Roles(UserRole.ADMINISTRATOR)
+    @Roles(RoleName.ADMINISTRATOR)
     @Post() // 📤 Endpoint POST -> /classroom
     
     async create(
@@ -50,7 +50,7 @@ export class ClassroomController {
     // 🔥 Una función asíncrona inicia una operación cuyo resultado llegará en el futuro
     // 🔥 La Promise representa ese resultado futuro: puede resolverse (fullfilled ✅) o fallar (rejected ❌)
     // 🔹 await pausa esta función hasta recibir el valor final de la Promise
-    @Roles(UserRole.ADMINISTRATOR)
+    @Roles(RoleName.ADMINISTRATOR)
     @Get() // 🏷️ Ruta: GET /classroom
     async findAll() : Promise<ApiResponse<Classroom[]>>{
 

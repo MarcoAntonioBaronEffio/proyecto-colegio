@@ -16,12 +16,10 @@ import { LoginDto } from './dto/login.dto';
 // 🔹 Importamos la interfaz del shape de la respuesta.
 //.   Esto da autocompletado y garantiza que devolvemos siempre la misma estructura.
 import { LoginResponse } from './interfaces/login-response.interface';
-import { RegisterDto, RoleName } from 'src/users/dto/register.dto';
-import { Roles } from 'src/common/decorators/roles.decorator';
+import { RegisterDto } from 'src/users/dto/register.dto';
 import { Public } from 'src/common/decorators/public.decorator';
-import { UserRole } from 'src/common/enums/user-role.enum';
-import { use } from 'passport';
 import { MenuService } from 'src/common/services/menu.service';
+import { RoleName } from 'src/entities/users.entity';
 
 // 🔹 Prefijo del controlador: todas las rutas aquí dentro comienzan con /auth
 @Controller('auth')
@@ -73,42 +71,6 @@ export class AuthController {
             roleName: user.roleName,
         });
 
-        //let options : any[] = [];
-
-        /*if(user.roleName === 'ADMINISTRATOR'){
-            options.push(
-                {
-                    title: 'Inicio',
-                    icon: 'home'
-                },
-                {
-                    title: 'Años escolares',
-                    icon: 'calendar_month'
-                }
-            )
-        }
-
-        if(user.roleName === 'GUARDIAN'){
-            options.push(
-                {
-                    title: 'Inicio',
-                    icon: 'home'
-                },
-                {
-                    title: 'Mis hijos',
-                    icon: 'groups'
-                },
-                {
-                    title: 'Notas',
-                    icon: 'grading'
-                },
-                {
-                    title: 'Asistencia',
-                    icon: 'fact_check'
-                }
-            )
-        }*/
-
         const menu = this.menuService.getMenuByRole(user.roleName);
 
         // 3️⃣ 📦 Devolvemos una respuesta que cumple la interfaz LoginResponse
@@ -146,37 +108,15 @@ export class AuthController {
         // 👉 El service crea el user y el perfil correspondiente según el rol
         const user = await this.auth.register(dto); // ✅ Guardado (o rollback si falla)
 
-        // 🧾 Mensaje por defecto
-        let message = 'Usuario registrado con éxito';
+        const messages : Record<RoleName, string> = {
+            [RoleName.STUDENT] : 'Estudiante registrado con éxito',
+            [RoleName.ADMINISTRATOR] : 'Administrador registrado con éxito',
+            [RoleName.SYSTEM_ADMINISTRATOR] : 'System Administrator registrado con éxito',
+            [RoleName.GUARDIAN] : 'Apoderado registrado con éxito',
+            [RoleName.TEACHER] : 'Profesor registrado con éxito',
+        };
 
-        // 🧼 Normalizamos el roleName para evitar problemas con mínúsculas o espacios
-        //const roleName = dto.roleName?.trim().toUpperCase();
-
-        // 🎓 Si el rol fue estudiante, personalizamos el mensaje
-        if(dto.roleName ===  RoleName.STUDENT){
-            message = 'Estudiante registrado con éxito';
-        }
-
-        // 🛡️ Si el rol fue administrador personalizamos el mensaje
-        else if(dto.roleName === RoleName.ADMINISTRATOR){
-            message = 'Administrador registrado con éxito';
-        }
-
-        // 👨‍💼 Si el rol fue de system administrator personalizamos el mensaje
-        else if(dto.roleName === RoleName.SYSTEM_ADMINISTRATOR){
-            message = 'System Administrator registrado con éxito';
-        }
-
-        // 🧑‍🧑‍🧒‍🧒 Si el rol fue de apoderado personalizamos el mensaje 
-        else if(dto.roleName === RoleName.GUARDIAN){
-            message = 'Apoderado registrado con éxito'
-        }
-
-        // 🧑‍🏫 Si el rol fue profesor personalizamos el mensaje 
-        else if (dto.roleName === RoleName.TEACHER){
-            message = 'Profesor registrado con éxito'
-        }
-
+        const message = messages[dto.roleName] ?? 'Usuario registrado con éxito'
 
         // ↩️ Retornamos una respuesta personalizada
         return{

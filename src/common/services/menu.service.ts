@@ -1,15 +1,15 @@
-import { Injectable } from "@nestjs/common";
-import { UserRole } from "../enums/user-role.enum";
+import { Injectable } from "@nestjs/common"; 
 import { MenuOption } from "../interfaces/menu-option.interface";
+import { RoleName } from "../enums/user-role.enum";
 
 @Injectable()
 export class MenuService {
 
-    getMenuByRole (role : UserRole) : MenuOption[] {
+    getMenuByRole (role : RoleName) : MenuOption[] {
 
         switch(role){
 
-            case UserRole.ADMINISTRATOR:
+            case RoleName.ADMINISTRATOR:
                 return [
                     {
                         title : 'Inicio',
@@ -21,7 +21,7 @@ export class MenuService {
                     }
                 ];
 
-            case UserRole.GUARDIAN:
+            case RoleName.GUARDIAN:
                 return [
                     {
                         title : 'Inicio',

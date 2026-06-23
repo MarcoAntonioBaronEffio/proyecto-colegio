@@ -2,9 +2,8 @@
 // 🔹 Un enum es una colección de valores constantes
 // 👉 Evita usar strings repetidos en todo el proyecto
 // 👉 Reduce errores de escritura y mejora el autocompletado
-export enum UserRole{
+export enum RoleName{
     
-
     // 🏢 SYSTEM_ADMINISTRATOR
     // 👉 Administrador global de la plataforma Saas
     // 👉 Puede crear colegios y administrar todo el sistema

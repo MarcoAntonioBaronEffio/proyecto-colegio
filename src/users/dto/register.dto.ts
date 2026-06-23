@@ -6,15 +6,8 @@ import { AdministratorDto } from "./create-administrator.dto";
 import { TeacherDto } from "./create-teacher.dto";
 import { GuardianDto } from "./create-guardian.dto";
 import { SystemAdministratorDto } from "./create-system-administrator.dto";
+import { RoleName } from "src/entities/users.entity";
 
-export enum RoleName {
-    GUARDIAN = 'GUARDIAN',
-    STUDENT = 'STUDENT',
-    TEACHER = 'TEACHER',
-    ASSISTANT = 'ASSISTANT',
-    ADMINISTRATOR = 'ADMINISTRATOR',
-    SYSTEM_ADMINISTRATOR = 'SYSTEM_ADMINISTRATOR'
-}
 
 
 // ✅ Esta clase representa el payload completo que llegará al backend cuando quiere registrar un usuario según su rol
