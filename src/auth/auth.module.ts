@@ -18,6 +18,7 @@ import { Student } from 'src/entities/student.entity';
 import { Teacher } from 'src/entities/teacher.entity';
 import { Guardian } from 'src/entities/guardian.entity';
 import { Administrator } from 'src/entities/administrator.entity';
+import { MenuService } from 'src/common/services/menu.service';
 
 @Module({
   // 🔹 imports -> Módulos externos o internos que exportan algo que necesitas,
@@ -115,7 +116,7 @@ import { Administrator } from 'src/entities/administrator.entity';
   // 🧩 Proveedores disponibles dentro de este módulo:
   // - AuthService: lógica de login/validación y formado de JWT.
   // - JwtStrategy: cómo extraer el token del header y validarlo en cada request protegida.
-  providers: [AuthService , JwtStrategy],
+  providers: [AuthService , JwtStrategy, MenuService],
 
   // 🔹 Servicios que quieres compartir
   // 📤 Exportamos AuthService para usarlo desde otros módulos si hace falta (ej:  para emitir

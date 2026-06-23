@@ -13,17 +13,17 @@ import { UsersService } from 'src/users/users.service';
 // ✅ Importamos bcrypt para comparar contraseñas en texto plano vs hash
 import * as bcrypt from 'bcrypt'
 import { RegisterDto, RoleName } from 'src/users/dto/register.dto';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, QueryFailedError} from 'typeorm';
 import { Rol, RoleStatus } from 'src/entities/rol.entity'; 
 import { Student } from 'src/entities/student.entity';
 import { Administrator } from 'src/entities/administrator.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { Teacher } from 'src/entities/teacher.entity';
 import { Guardian } from 'src/entities/guardian.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import { CodeGenerator } from 'src/common/utils/code-generator.util';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { SystemAdministrator } from 'src/entities/system_administrator.entity';
+import { AuthUser } from './interfaces/auth-user.interface';
 
 
 // 🔹 Indicamos que esta clase es un "servicio" inyectable en NestJS.
@@ -46,31 +46,15 @@ export class AuthService {
         // - Repository = una ventanilla de atención 🪟
         // - transacción = una operación bancaria segura 🔐
         private readonly dataSource : DataSource,
-
-        @InjectRepository(Student)
-        private readonly studentRepository : Repository<Student>,
-
-        @InjectRepository(Teacher)
-        private readonly teacherRepository : Repository<Teacher>,
-
-        @InjectRepository(Guardian)
-        private readonly guardianRepository : Repository<Guardian>,
-
-        @InjectRepository(Administrator)
-        private readonly administratorRepository : Repository<Administrator>,
-
-
-
     ){}
 
     // ✅ Método validate
     // Este método se encarga de verificar las credenciales del usuario.
     // Recibe un email y una contraseña (en texto plano), busca al usuario en la BD, compara el hash, y si todo está
     // correcto, lo devuelve.
-    async validate (email : string, password : string){
+    async validate (email : string, password : string) : Promise<AuthUser>{
 
         try{
-
             // 1️⃣ Buscamos al usuario en la base de datos por su email
             // 🔍 Este método internamente  hace SELECT del passwordHash usando addSelect
             // 👉🏼 Este método debe usar QueryBuilder con .addSelect('user.passwordHash) ya que
@@ -84,22 +68,37 @@ export class AuthService {
             // 3️⃣ Comparamos la contraseña ingresada con el hash almacenado en la BD usando bcrypt.compare()
             // 🔹 El primer argumento es la contraseña que el usuario escribió (texto plano)
             // 🔹 El segundo argumento es el hash guardado en la BD
-            const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+            const isPasswordValid = await bcrypt.compare(
+                password, 
+                user.passwordHash);
 
             // 4️⃣ Si la comparación del hash NO coincide devuelve false, las credenciales son incorrectas y volvemos a lanzar UnauthorizedException
-            if(!isPasswordValid) throw new UnauthorizedException('Credenciales inválidas');
+            if(!isPasswordValid){
+                throw new UnauthorizedException('Credenciales inválidas');
+            } 
+
+            const authUser : AuthUser = {
+                sub : user?.id, // Ej: "uuid-del-usuario"
+                email : user?.email, // Ej: "correo@ejemplo.com"
+                roleId : user?.role.id,  // Ej: "uuid-del-rol" , rol lo traemos porque usamos eager: true
+                roleName : user?.role.name as UserRole // Ej: "ADMINISTRATOR", "STUDENT"
+            }
+
+            return authUser;
 
             // 5️⃣ Devolvemos al "controlador" los datos necesarios del usuario autenticado.
             // 👉 Este objeto será recibido en el controlador cuando se llame a: 
             //   const user = await this.auth.validate(...)
             // 👉 Solo retornamos la información mínima necesaria (no la entidad completa)
             // Puedes incluir solo los campos que tu aplicación requiera
-            return {
-                sub : user.id,          // Ej: "uuid-del-usuario"
-                email : user.email,     // Ej: "correo@ejemplo.com"
-                roleId : user.role.id,   // Ej: "uuid-del-rol" , rol lo traemos porque usamos eager: true
-                roleName: user.role.name // Ej: "ADMINISTRATOR", "STUDENT"
-            };
+            /*return {
+                sub : user.id,          
+                email : user.email,     
+                roleId : user.role.id,  
+                roleName: user.role.name as UserRole
+            };*/
+
+            
 
         } catch(error){
             // 🎯  Si el error es UnauthorizedException (401) lo volvemos a lanzar sin modificarlo.
@@ -131,7 +130,9 @@ export class AuthService {
             sub: string; 
             email : string; 
             roleId : string;
-            roleName : string})
+            roleName : string;
+            // actions : []
+        })
         {
 
         try{

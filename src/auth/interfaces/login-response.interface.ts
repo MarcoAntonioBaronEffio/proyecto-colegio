@@ -2,6 +2,9 @@
 // Usamos 'interface' en lugar de 'type' para describir objetos con propiedades
 // nominales y facilitar futuras extensiones.
 
+import { UserRole } from "src/common/enums/user-role.enum";
+import { MenuOption } from "src/common/interfaces/menu-option.interface";
+
 // 🔐 Respuesta que enviará el backend al hacer login correctamente
 export interface LoginResponse{
 
@@ -32,5 +35,7 @@ export interface UserSummary{
     // lastLoginAt?: string;
     //
     // 🏷️ Nombre del rol (sirve para decidir pantallas en Android/Jetpack compose)
-    roleName : string;
+    //roleName : string;
+    roleName : UserRole;
+    menu : MenuOption[];
 }

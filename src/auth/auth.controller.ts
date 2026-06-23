@@ -16,10 +16,12 @@ import { LoginDto } from './dto/login.dto';
 // 🔹 Importamos la interfaz del shape de la respuesta.
 //.   Esto da autocompletado y garantiza que devolvemos siempre la misma estructura.
 import { LoginResponse } from './interfaces/login-response.interface';
-import { RegisterDto } from 'src/users/dto/register.dto';
+import { RegisterDto, RoleName } from 'src/users/dto/register.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
+import { use } from 'passport';
+import { MenuService } from 'src/common/services/menu.service';
 
 // 🔹 Prefijo del controlador: todas las rutas aquí dentro comienzan con /auth
 @Controller('auth')
@@ -29,7 +31,9 @@ export class AuthController {
     // Nest crea una instancia de AuthService y la inyecta aquí automáticamente.
     // private readonly auth -> define y asigna la propiedad en una sola línea y readonly evita
     // que se reasigne por error.
-    constructor(private readonly auth: AuthService){}
+    constructor(
+        private readonly auth: AuthService,
+        private readonly menuService : MenuService){}
 
 
     @Public()
@@ -69,6 +73,44 @@ export class AuthController {
             roleName: user.roleName,
         });
 
+        //let options : any[] = [];
+
+        /*if(user.roleName === 'ADMINISTRATOR'){
+            options.push(
+                {
+                    title: 'Inicio',
+                    icon: 'home'
+                },
+                {
+                    title: 'Años escolares',
+                    icon: 'calendar_month'
+                }
+            )
+        }
+
+        if(user.roleName === 'GUARDIAN'){
+            options.push(
+                {
+                    title: 'Inicio',
+                    icon: 'home'
+                },
+                {
+                    title: 'Mis hijos',
+                    icon: 'groups'
+                },
+                {
+                    title: 'Notas',
+                    icon: 'grading'
+                },
+                {
+                    title: 'Asistencia',
+                    icon: 'fact_check'
+                }
+            )
+        }*/
+
+        const menu = this.menuService.getMenuByRole(user.roleName);
+
         // 3️⃣ 📦 Devolvemos una respuesta que cumple la interfaz LoginResponse
         // - acess_token: el JWT (string).
         // - user: datos básicos del usuario logueado (útiles en el cliente).
@@ -79,7 +121,8 @@ export class AuthController {
                 id : user.sub, // uuid del usuario
                 email: user.email, // email
                 roleId: user.roleId, // rol de usuario
-                roleName: user.roleName // nombre del rol
+                roleName: user.roleName, // nombre del rol
+                menu
             },
         };
     }
@@ -107,27 +150,37 @@ export class AuthController {
         let message = 'Usuario registrado con éxito';
 
         // 🧼 Normalizamos el roleName para evitar problemas con mínúsculas o espacios
-        const roleName = dto.roleName?.trim().toUpperCase();
+        //const roleName = dto.roleName?.trim().toUpperCase();
 
         // 🎓 Si el rol fue estudiante, personalizamos el mensaje
-        if(roleName === 'STUDENT'){
+        if(dto.roleName ===  RoleName.STUDENT){
             message = 'Estudiante registrado con éxito';
         }
 
         // 🛡️ Si el rol fue administrador personalizamos el mensaje
-        if(roleName === 'ADMINISTRATOR'){
+        else if(dto.roleName === RoleName.ADMINISTRATOR){
             message = 'Administrador registrado con éxito';
         }
 
         // 👨‍💼 Si el rol fue de system administrator personalizamos el mensaje
-        if(roleName === 'SYSTEM_ADMINISTRATOR'){
+        else if(dto.roleName === RoleName.SYSTEM_ADMINISTRATOR){
             message = 'System Administrator registrado con éxito';
+        }
+
+        // 🧑‍🧑‍🧒‍🧒 Si el rol fue de apoderado personalizamos el mensaje 
+        else if(dto.roleName === RoleName.GUARDIAN){
+            message = 'Apoderado registrado con éxito'
+        }
+
+        // 🧑‍🏫 Si el rol fue profesor personalizamos el mensaje 
+        else if (dto.roleName === RoleName.TEACHER){
+            message = 'Profesor registrado con éxito'
         }
 
 
         // ↩️ Retornamos una respuesta personalizada
         return{
-            succes : true, // ✅ Indicamos que la operación fue exitosa
+            success : true, // ✅ Indicamos que la operación fue exitosa
             message, // 📨 Mensaje dinámico según el rol
             data : user, // 📦 Datos del usuario creado
         };
