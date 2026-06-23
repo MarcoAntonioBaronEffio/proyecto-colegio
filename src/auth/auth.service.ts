@@ -22,6 +22,8 @@ import { Teacher } from 'src/entities/teacher.entity';
 import { Guardian } from 'src/entities/guardian.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CodeGenerator } from 'src/common/utils/code-generator.util';
+import { UserRole } from 'src/common/enums/user-role.enum';
+import { SystemAdministrator } from 'src/entities/system_administrator.entity';
 
 
 // 🔹 Indicamos que esta clase es un "servicio" inyectable en NestJS.
@@ -227,7 +229,6 @@ export class AuthService {
                 where : { 
                     name : roleNameNormalized,
                     status: RoleStatus.ACTIVE
-                    //isActive : true 
                 }, // ✅ Debe existir y estar activo
             }); // 🧾 consulta dentro de la transacción
 
@@ -243,7 +244,7 @@ export class AuthService {
             /* -------------------------------------------------------------------------------------------- */
 
             
-            // ⭐️ Record<string, ...> => Significa: "Voy a crear un objeto donde las claves serán texto"
+            // ⭐️ Record<string, ...> => Significa: "Voy a crear un objeto donde las "claves" serán texto"
             //.  o sea, las llaves como : STUDENT, ADMINISTRATOR son strings.
 
             // ⭐️ keyof RegisterDto => Significa: "Los valores solo pueden ser nombres de propiedades que existan dentro de RegisterDto."
@@ -278,6 +279,17 @@ export class AuthService {
             // ✅ El nombre nos dice su propósito: "requiredPayloadByRole" = "payload requerido según el rol." 
             const requiredPayloadByRole : Record<string, keyof RegisterDto> = {
 
+                [UserRole.SYSTEM_ADMINISTRATOR] : 'systemAdministrator',
+         
+                // 🔹 Aqui decimos:
+                // 👉 Si el rol es "ADMINISTRADOR"
+                // 👉 entonces el payload obligatorio será "administrator"
+                // 🧠 En palabras simples: "Cuando alguien se registre como ADMINISTRATOR, espero que dentro del dto venga la parte dto.administrator"
+                // 📦 Entonces este mapa también tiene: ADMINISTRATOR ------> administrator
+                [UserRole.ADMINISTRATOR] : 'administrator',
+
+                [UserRole.GUARDIAN]: 'guardian',
+
                 // 🔹 Aquí decimos:
                 // 👉 Si el rol es "STUDENT"
                 // 👉 entonces el payload obligatorio será "student"
@@ -285,18 +297,13 @@ export class AuthService {
                 // 📦 O sea, este objeto está haciendo un "mapa":
                 //.   rol -----------> payload obligatorio
                 //.   STUDENT -------> student
-                STUDENT : 'student',
+                [UserRole.STUDENT] : 'student',
 
-                // 🔹 Aqui decimos:
-                // 👉 Si el rol es "ADMINISTRADOR"
-                // 👉 entonces el payload obligatorio será "administrator"
-                // 🧠 En palabras simples: "Cuando alguien se registre como ADMINISTRATOR, espero que dentro del dto venga la parte dto.administrator"
-                // 📦 Entonces este mapa también tiene: ADMINISTRATOR ------> administrator
-                ADMINISTRATOR : 'administrator',
+                
 
-                TEACHER : 'teacher',
+                [UserRole.TEACHER] : 'teacher',
 
-                GUARDIAN: 'guardian'
+                
             }
 
 
@@ -418,6 +425,7 @@ export class AuthService {
             
             */
             const allPayloadFields : (keyof RegisterDto)[] = [
+                'systemAdministrator',
                 // 🔹 Agregamos el payload "student" a la lista.
                 // ✅ Esto significa que RegisterDto puede tener una propiedad llamada student
                 // 🧠 Este campo se usa cuando el rol es STUDENT
@@ -431,11 +439,12 @@ export class AuthService {
             ]
  
             // 🔄 Ahora recorremos uno por uno todos los payloads posibles
-            // 🔹 Piensa que el backend agarra esta lista: ["student", "administrator", "teacher", "guardian"] y empieza a revisarla asi:
+            // 🔹 Piensa que el backend agarra esta lista: ["systemAdministrator","student", "administrator", "teacher", "guardian"] y empieza a revisarla asi:
             // 1️⃣ field = "student"
             // 2️⃣ field = "administrator"
             // 3️⃣ field = "teacher"
             // 4️⃣ field = "guardian"
+            // 5️⃣ field = "systemAdministrator"
 
             // 🧠 ¿Para qué hacemos esto?
             // 👉 Para asegurarnos de que el cliente NO mande payloads de otros roles
@@ -659,9 +668,39 @@ export class AuthService {
             // - valor: función async que no devuelve nada
             const handlers : Record<string, () => Promise<void>>={
 
+                // 👑 HANDLER para el rol SYSTEM_ADMINISTRATOR
+                // ✅ Si el usuario tiene el rol SYSTEM_ADMINISTRATOR, esta función será la encargada de crear su perfil de administrador del sistema
+                [UserRole.SYSTEM_ADMINISTRATOR]: async () => {
+
+                    // 📦 Obtenemos el repositorio de SystemAdministrator usando la misma transacción actual
+                    const systemAdminRepo = manager.getRepository(SystemAdministrator);
+
+                    // 🧱 Creamos la entidad en memoria
+                    const systemAdmin = systemAdminRepo.create({
+                        // 🔗 Asociamos el perfil con el usuario recién creado
+                        user: {id : savedUser.id},
+                        // 📄 Datos propios del administrador del sistema
+                        documentType: dto.systemAdministrator!.documentType,
+                        documentNumber: dto.systemAdministrator!.documentNumber
+                    });
+
+                    // 💾 Guardamos para obtener el UUID generado
+                    const savedSystemAdmin = await systemAdminRepo.save(systemAdmin);
+
+                    // 🏷️ Generamos un código amigable
+                    savedSystemAdmin.systemAdminCode =
+                        CodeGenerator.generate('SYS', savedSystemAdmin.id);
+
+                    // 💾 Actualizamos el registro con el código generado
+                    await systemAdminRepo.save(savedSystemAdmin);
+
+
+                },
+
+
                 // 🎓  Handler para el rol STUDENT
                 // ✅  Si el usuario registrado tiene rol STUDENT, esta función será la encargada de crear su perfil de estudiante
-                STUDENT : async () => {
+                [UserRole.STUDENT] : async () => {
  
                     // 🎓 Obtenemos el repositorio de Student
                     // usando el mismo manager de la transacción
@@ -700,7 +739,7 @@ export class AuthService {
 
                 // 🛡️ HANDLER para el rol ADMINISTRADOR
                 // ✅ Si el rol usuario tiene rol ADMINISTRATOR, esta función será la encargada de crear su perfil de administrador
-                ADMINISTRATOR : async () => {
+                [UserRole.ADMINISTRATOR] : async () => {
 
                     // 🗂️ Obtenemos el repositorio de Administrador dentro de la misma transacción
                     const adminRepo = manager.getRepository(Administrator); 
@@ -730,7 +769,7 @@ export class AuthService {
 
                 // 👨‍🏫 HANDLER para el rol TEACHER
                 // ✅ Si el usuario tiene rol TEACHER, este bloque crea su perfil de docente
-                TEACHER: async() => {
+                [UserRole.TEACHER]: async() => {
 
                     // 📦 Obtenemos el repositorio de Teacher dentro de la misma transacción
                     const teacherRepo = manager.getRepository(Teacher);
@@ -760,7 +799,7 @@ export class AuthService {
 
                 // 👨‍👩‍👦  HANDLER para el rol GUARDIAN
                 // ✅ Si el usuario tiene rol GUARDIAN, este bloque crea su perfil de apoderado
-                GUARDIAN: async() => {
+                [UserRole.GUARDIAN]: async() => {
 
                     // 📦 Obtenemos el repositorio de Guardian dentro de la misma transacción
                     const guardianRepo = manager.getRepository(Guardian);
@@ -791,7 +830,30 @@ export class AuthService {
             
             }
 
-            // 🚀  Aqui ejecutamos dinámicamente el handler correcto según el rol
+            // 🚀 Ejecutamos el handler correspondiente al rol del usuario
+            // 🧠 ¿Qué está pasando aqui?
+            // 🔹 2️⃣Hasta este momento NO hemos ejecutado ninguna función
+            // 👉 Solo creamos un objeto llamado "handler" que guarda una función para cada rol
+
+            // ⌛️ Usamos await porque cada handler es una función async
+            // 🔹 Debemos esperar a que termine de guardar el perfil correspondiente antes de continuar con el resto del
+            //   proceso o finalizar la transacción
+
+
+            // 🔹 Flujo
+            // 1️⃣ JavaScript crea el objeto "handlers": Lee esto: const handlers = { [UserRole.STUDENT] : async () => {...} , ... }
+            // Y piensa: "Perfecto, guardaré estas funciones en memoria", pero No ENTRA DENTRO de ninguna función. No ejecuta:
+            // async () => { ... } . Simplemente las almacena
+            // 2️⃣ Llega al final: await handlers[role.name](); Aqui si ocurre algo, 
+            // 🔹 Primero evalúa: handlers[role.name]. Supongamos que: role.name === UserRole.STUDENT, entonces queda handlers[UserRole.STUDENT]
+            // ❌ Que devuelvo: async () => {console.log("Crear estudiante");}
+            // 3️⃣ Los paréntesis ejecutan la función : handlers[role.name]()
+            // 4️⃣ Termina y vuelve, cuando termina : await studentRepo.save(savedStudent); sale de la función y regresa aqui:
+            //    await handlers[role.name]();
+            // 🔹 Luego continúa con la siguiente línea del método
+
+
+
             // 🧠 Esto significa:
             // si role.name = "STUDENT" entonces ejecuta: handlers["STUDENT"]()
             // si role.name = "ADMINISTRATOR" entonces ejecuta: handlers["ADMINISTRATOR"]()

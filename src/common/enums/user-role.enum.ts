@@ -5,10 +5,10 @@
 export enum UserRole{
     
 
-    // 🏢 SYSTEM_ADMIN
+    // 🏢 SYSTEM_ADMINISTRATOR
     // 👉 Administrador global de la plataforma Saas
     // 👉 Puede crear colegios y administrar todo el sistema
-    SYSTEM_ADMIN = 'SYSTEM_ADMIN',
+    SYSTEM_ADMINISTRATOR = 'SYSTEM_ADMINISTRATOR',
 
     // 👑 ADMINISTRATOR
     // 👉 Administrador de un colegio específico
