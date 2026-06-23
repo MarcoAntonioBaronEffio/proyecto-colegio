@@ -119,6 +119,11 @@ export class AuthController {
             message = 'Administrador registrado con éxito';
         }
 
+        // 👨‍💼 Si el rol fue de system administrator personalizamos el mensaje
+        if(roleName === 'SYSTEM_ADMINISTRATOR'){
+            message = 'System Administrator registrado con éxito';
+        }
+
 
         // ↩️ Retornamos una respuesta personalizada
         return{

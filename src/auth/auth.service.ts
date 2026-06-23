@@ -12,7 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 // ✅ Importamos bcrypt para comparar contraseñas en texto plano vs hash
 import * as bcrypt from 'bcrypt'
-import { RegisterDto } from 'src/users/dto/register.dto';
+import { RegisterDto, RoleName } from 'src/users/dto/register.dto';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { Rol, RoleStatus } from 'src/entities/rol.entity'; 
 import { Student } from 'src/entities/student.entity';
@@ -279,16 +279,16 @@ export class AuthService {
             // ✅ El nombre nos dice su propósito: "requiredPayloadByRole" = "payload requerido según el rol." 
             const requiredPayloadByRole : Record<string, keyof RegisterDto> = {
 
-                [UserRole.SYSTEM_ADMINISTRATOR] : 'systemAdministrator',
+                [RoleName.SYSTEM_ADMINISTRATOR] : 'systemAdministrator',
          
                 // 🔹 Aqui decimos:
                 // 👉 Si el rol es "ADMINISTRADOR"
                 // 👉 entonces el payload obligatorio será "administrator"
                 // 🧠 En palabras simples: "Cuando alguien se registre como ADMINISTRATOR, espero que dentro del dto venga la parte dto.administrator"
                 // 📦 Entonces este mapa también tiene: ADMINISTRATOR ------> administrator
-                [UserRole.ADMINISTRATOR] : 'administrator',
+                [RoleName.ADMINISTRATOR] : 'administrator',
 
-                [UserRole.GUARDIAN]: 'guardian',
+                [RoleName.GUARDIAN]: 'guardian',
 
                 // 🔹 Aquí decimos:
                 // 👉 Si el rol es "STUDENT"
@@ -297,11 +297,11 @@ export class AuthService {
                 // 📦 O sea, este objeto está haciendo un "mapa":
                 //.   rol -----------> payload obligatorio
                 //.   STUDENT -------> student
-                [UserRole.STUDENT] : 'student',
+                [RoleName.STUDENT] : 'student',
 
                 
 
-                [UserRole.TEACHER] : 'teacher',
+                [RoleName.TEACHER] : 'teacher',
 
                 
             }
@@ -670,7 +670,7 @@ export class AuthService {
 
                 // 👑 HANDLER para el rol SYSTEM_ADMINISTRATOR
                 // ✅ Si el usuario tiene el rol SYSTEM_ADMINISTRATOR, esta función será la encargada de crear su perfil de administrador del sistema
-                [UserRole.SYSTEM_ADMINISTRATOR]: async () => {
+                [RoleName.SYSTEM_ADMINISTRATOR]: async () => {
 
                     // 📦 Obtenemos el repositorio de SystemAdministrator usando la misma transacción actual
                     const systemAdminRepo = manager.getRepository(SystemAdministrator);
@@ -700,7 +700,7 @@ export class AuthService {
 
                 // 🎓  Handler para el rol STUDENT
                 // ✅  Si el usuario registrado tiene rol STUDENT, esta función será la encargada de crear su perfil de estudiante
-                [UserRole.STUDENT] : async () => {
+                [RoleName.STUDENT] : async () => {
  
                     // 🎓 Obtenemos el repositorio de Student
                     // usando el mismo manager de la transacción
@@ -739,7 +739,7 @@ export class AuthService {
 
                 // 🛡️ HANDLER para el rol ADMINISTRADOR
                 // ✅ Si el rol usuario tiene rol ADMINISTRATOR, esta función será la encargada de crear su perfil de administrador
-                [UserRole.ADMINISTRATOR] : async () => {
+                [RoleName.ADMINISTRATOR] : async () => {
 
                     // 🗂️ Obtenemos el repositorio de Administrador dentro de la misma transacción
                     const adminRepo = manager.getRepository(Administrator); 
@@ -769,7 +769,7 @@ export class AuthService {
 
                 // 👨‍🏫 HANDLER para el rol TEACHER
                 // ✅ Si el usuario tiene rol TEACHER, este bloque crea su perfil de docente
-                [UserRole.TEACHER]: async() => {
+                [RoleName.TEACHER]: async() => {
 
                     // 📦 Obtenemos el repositorio de Teacher dentro de la misma transacción
                     const teacherRepo = manager.getRepository(Teacher);
@@ -799,7 +799,7 @@ export class AuthService {
 
                 // 👨‍👩‍👦  HANDLER para el rol GUARDIAN
                 // ✅ Si el usuario tiene rol GUARDIAN, este bloque crea su perfil de apoderado
-                [UserRole.GUARDIAN]: async() => {
+                [RoleName.GUARDIAN]: async() => {
 
                     // 📦 Obtenemos el repositorio de Guardian dentro de la misma transacción
                     const guardianRepo = manager.getRepository(Guardian);
