@@ -96,33 +96,41 @@ export class AuthController {
 
 
     // ✅ Endpoint para registrar usuario:
-    // POST /auth/register
-    //@Roles(UserRole.ADMINISTRATOR)
-    //@Public()
-    @Roles(RoleName.ADMINISTRATOR)
+    // 🔐 Solo los usuarios con rol SYSTEM_ADMINISTRATOR o ADMINISTRADOR pueden acceder a este endpoint
+    // 👉 RolesGuard leerá este decorador y verificará que req.user.roleName coincida con alguno de los roles permitidos 
+    @Roles(
+        RoleName.SYSTEM_ADMINISTRATOR,
+        RoleName.ADMINISTRATOR)
     @Post('register') // 🚀 Definimos la ruta POST /auth/register
-    @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, responderá con 201 Created
+    @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, la respuesta HTTP será 201 Created
+    // 🧩 Método encargado de registrar nuevos usuarios dentro del colegio del administrador autenticado
+    // 👉 El colegio se obtiene automáticamente desde el JWT
     async register(
+        // 📥 Obtiene el body de la petición HTTP
+        // 👉 NestJS transforma automáticamente el JSON recibido en una instancia de RegisterDto
         @Body() dto : RegisterDto,
+        // 🔐 Obtiene un objeto Request de Express
+        // 👉 Gracias a JwtAuthGuard y JwtStrategy, aquí ya existe req.user
+        // 👉 req.user contiene el payload validado del JWT
         @Req() req : AuthRequest    
     ){
 
-        // 📥 Recibimos el body del request y Nest lo transforma en RegisterDto
-        // 🧠 Aquí ya se aplican validaciones del DTO si usas ValidationPipe global
-
-        // 🔁 Llamamos al servicio que hace la transacción
-        // - valida rol
-        // - crea user
-        // - crea student si aplica
-        // 👉 El service crea el user y el perfil correspondiente según el rol
-
-         // 🏫 Colegio asociado al administrador autenticado
+        // 📌 En este punto ya sabemos:
+        // ✅ El token JWT es validado
+        // ✅ El usuario está autenticado
+        // ✅ El usuario tiene rol ADMINISTRATOR
+        // ✅ req.user contiene los datos devueltos por JwtStratagy
+ 
+        // 🏫 Obtenemos el identificador del colegio asociado al administrador autenticado
+        // 👉 Este valor proviene del payload JWT
         const schoolId = req.user.schoolId;
         
-        // 🛡️ Un administrador siempre debe pertenecer a un colegio
-            if(!schoolId){
-                throw new ForbiddenException(
-                    'El usuario no pertenece a ningún colegio'
+        // 🛡️ Validación de seguridad
+        // 👉 Todo administrador debe pertenecer a un colegio
+        // 👉 Si no existe schoolId, no es posible asociar correctamente los nuevos registros
+        if(!schoolId){
+            throw new ForbiddenException(
+                'El usuario no pertenece a ningún colegio'
             );
         }
 

@@ -19,21 +19,24 @@ POST -> http://localhost:3000/api/auth/register
 ⬅️ respueta
 
 {
-    "succes": true,
-    "message": "Usuario registrado con éxito",
+    "success": true,
+    "message": "Apoderado registrado con éxito",
     "data": {
-        "id": "bc8e1298-4235-4fd2-ba07-1da169dedd26",
+        "id": "9240ca18-66e1-49b1-a6b5-4166d78801e5",
         "email": "guardian@test.com",
         "firstName": "Juan",
         "lastName": "Pérez",
         "role": {
-            "id": "bdfea457-6b5a-4226-b700-33b2333dd517"
+            "id": "92746d96-9481-4ad8-bc97-a11ba9c3f73f"
         },
         "phone": null,
         "address": null,
         "avatarUrl": null,
         "status": "ACTIVE",
-        "createdAt": "2026-06-01T18:29:49.927Z",
-        "updatedAt": "2026-06-01T18:29:49.927Z"
+        "createdAt": "2026-06-24T09:22:58.235Z",
+        "updatedAt": "2026-06-24T09:22:58.235Z",
+        "school": {
+            "id": "c5fd365c-a158-4e33-a734-cbf30781dbc9"
+        }
     }
 }

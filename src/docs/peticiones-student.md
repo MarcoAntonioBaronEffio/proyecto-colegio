@@ -19,21 +19,24 @@ POST -> http://localhost:3000/api/auth/register
 ⬅️ Respuesta
 
 {
-    "succes": true,
+    "success": true,
     "message": "Estudiante registrado con éxito",
     "data": {
-        "id": "7bab1799-c82d-46da-92b0-04bdb2eb77e9",
+        "id": "6f5dca4e-53ac-4176-9ec6-b0565da925ad",
         "email": "student@test.com",
         "firstName": "María",
         "lastName": "Pérez",
         "role": {
-            "id": "47150b43-055d-4567-bba7-8d08328d5184"
+            "id": "c7c1c104-97fc-45a8-82cc-3f1362cecf15"
         },
         "phone": null,
         "address": null,
         "avatarUrl": null,
         "status": "ACTIVE",
-        "createdAt": "2026-06-01T18:36:39.971Z",
-        "updatedAt": "2026-06-01T18:36:39.971Z"
+        "createdAt": "2026-06-24T09:53:27.104Z",
+        "updatedAt": "2026-06-24T09:53:27.104Z",
+        "school": {
+            "id": "c5fd365c-a158-4e33-a734-cbf30781dbc9"
+        }
     }
 }
