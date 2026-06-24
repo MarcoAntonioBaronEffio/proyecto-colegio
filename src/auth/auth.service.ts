@@ -192,7 +192,10 @@ export class AuthService {
     // ⭐️ Si algo falla en cualquier paso, TODO se revierte (rollback) 🔁🧨
     //    "Todo se guarda o nada se guarda" ✅ ❌
     // 🔹 dto : RegisterDto -> trae todo lo del CreateUserDto (email, firstName, lastName, password, phone, avatarUrl, roleId) 
-    async register(dto: RegisterDto) { // ✅ Función async: devuelve una Promise y usamos await dentro
+    async register(
+        dto: RegisterDto,
+        schoolId : string
+    ) { // ✅ Función async: devuelve una Promise y usamos await dentro
         try{ // 🛡️ try: capturamos errores para responder con excepciones claras (400/409/500)
 
 
@@ -591,18 +594,14 @@ export class AuthService {
                 RoleName.GUARDIAN,
             ];
 
-            let schoolId : string | null = null;
+            let school : School | null = null;
 
             if(rolesWithSchool.includes(role.name as RoleName)){
-                if(!dto.schoolId){
-                    throw new BadRequestException(
-                        `Debes enviar schoolId para el rol ${role.name}`
-                    );
-                }
 
-                const school = await manager.getRepository(School).findOne({
+
+                school = await manager.getRepository(School).findOne({
                     where :{
-                        id : dto.schoolId
+                        id : schoolId
                     }
                 });
 
@@ -679,7 +678,7 @@ export class AuthService {
                 // ✅ Aqui solo viajan los campos que pertenecen a User
                 createUserDto,  
                 role.id,
-                schoolId,
+                school?.id ?? null,
                 // 🔁 También le pasamos el manager de la transacción actual
                 // 🧠 Esto es importantísimo:
                 // asi users.create (...) trabajará DENTRO de la misma transacción

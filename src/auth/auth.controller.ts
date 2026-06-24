@@ -7,7 +7,7 @@
 // 🔹 HttpException -> Clase base para lanzar errores HTTP personalizados.
 // 🔹 HttpStatus -> Enum con los códigos de estado HTTP (200, 400, 401, 500, etc).
 // 🔹 Post -> Decorador para manejar solicitudes HTTP POST.
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
 // 🔹 Importamos el servicio de autenticación donde está la lógica de negocio (validar credenciales, firmar JWT, etc.).   
 import { AuthService } from './auth.service';
 // 🔹 Importamos el DTO que define y valida la forma del body esperado para /login.
@@ -21,6 +21,8 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { MenuService } from 'src/common/services/menu.service';
 import { RoleName } from 'src/entities/users.entity';
 import { use } from 'passport';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import type { AuthRequest } from 'src/common/interfaces/auth-request-interface';
 
 // 🔹 Prefijo del controlador: todas las rutas aquí dentro comienzan con /auth
 @Controller('auth')
@@ -96,10 +98,14 @@ export class AuthController {
     // ✅ Endpoint para registrar usuario:
     // POST /auth/register
     //@Roles(UserRole.ADMINISTRATOR)
-    @Public()
+    //@Public()
+    @Roles(RoleName.ADMINISTRATOR)
     @Post('register') // 🚀 Definimos la ruta POST /auth/register
     @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, responderá con 201 Created
-    async register(@Body() dto : RegisterDto){
+    async register(
+        @Body() dto : RegisterDto,
+        @Req() req : AuthRequest    
+    ){
 
         // 📥 Recibimos el body del request y Nest lo transforma en RegisterDto
         // 🧠 Aquí ya se aplican validaciones del DTO si usas ValidationPipe global
@@ -109,7 +115,22 @@ export class AuthController {
         // - crea user
         // - crea student si aplica
         // 👉 El service crea el user y el perfil correspondiente según el rol
-        const user = await this.auth.register(dto); // ✅ Guardado (o rollback si falla)
+
+         // 🏫 Colegio asociado al administrador autenticado
+        const schoolId = req.user.schoolId;
+        
+        // 🛡️ Un administrador siempre debe pertenecer a un colegio
+            if(!schoolId){
+                throw new ForbiddenException(
+                    'El usuario no pertenece a ningún colegio'
+            );
+        }
+
+
+        const user = await this.auth.register(
+            dto,
+            schoolId
+        ); // ✅ Guardado (o rollback si falla)
 
         const messages : Record<RoleName, string> = {
             [RoleName.STUDENT] : 'Estudiante registrado con éxito',
