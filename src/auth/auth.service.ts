@@ -26,6 +26,7 @@ import { AuthUser } from './interfaces/auth-user.interface';
 import { RoleName } from 'src/entities/users.entity';
 import { use } from 'passport';
 import { JwtPayload } from './types/jwt-payload-type';
+import { School } from 'src/entities/school.entity';
 
 
 // 🔹 Indicamos que esta clase es un "servicio" inyectable en NestJS.
@@ -581,6 +582,43 @@ export class AuthService {
 
             /* -------------------------------------------------------------------------------------------- */
 
+            // 📌 FALTA DOCUMENAR
+
+            const rolesWithSchool = [
+                RoleName.ADMINISTRATOR,
+                RoleName.TEACHER,
+                RoleName.STUDENT,
+                RoleName.GUARDIAN,
+            ];
+
+            let schoolId : string | null = null;
+
+            if(rolesWithSchool.includes(role.name as RoleName)){
+                if(!dto.schoolId){
+                    throw new BadRequestException(
+                        `Debes enviar schoolId para el rol ${role.name}`
+                    );
+                }
+
+                const school = await manager.getRepository(School).findOne({
+                    where :{
+                        id : dto.schoolId
+                    }
+                });
+
+                if(!school){
+                    throw new NotFoundException(
+                        'El colegio no existe'
+                    );
+                }
+
+                schoolId = school.id
+            }
+
+
+            /* -------------------------------------------------------------------------------------------- */
+
+
 
             // ✅ Vamos a crear un usuario usando SOLO los campos generales de User
             // 🔹 O sea: del DTO grande (RegisterDto) vamos a sacar únicamente la parte que pertenece a la tabla users.
@@ -641,6 +679,7 @@ export class AuthService {
                 // ✅ Aqui solo viajan los campos que pertenecen a User
                 createUserDto,  
                 role.id,
+                schoolId,
                 // 🔁 También le pasamos el manager de la transacción actual
                 // 🧠 Esto es importantísimo:
                 // asi users.create (...) trabajará DENTRO de la misma transacción
@@ -862,7 +901,7 @@ export class AuthService {
             // 🔹 En palabras simples:
             // "Según el rol, abro la función correcta y la ejecuto"
             await handlers[role.name](); 
-
+ 
             
             // ✅ Si llegamos hasta aquí, significa que TODO salió bien
             // 🔹 O sea:

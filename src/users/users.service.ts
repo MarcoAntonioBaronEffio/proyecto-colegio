@@ -38,6 +38,7 @@ export class UsersService {
     async create (
         dto : CreateUserDto, // 📦 DTO limpio (solo datos de User)
         roleId : string,
+        schoolId, 
         manager?: EntityManager, // 🔄 Manager opcional (para transacciones)
     ) : Promise<User>{ // ↩️ Retorna el usuario creado (sin passwordHash)  
 
@@ -100,7 +101,12 @@ export class UsersService {
                 passwordHash,         // 🔐 Hash de contraseña
                 phone,                // 📱 Teléfono
                 avatarUrl,            // 🖼️ Avatar
-                role : { id : roleId }  // ✅ FK directa
+                role : { id : roleId },  // ✅ FK directa
+                ...(schoolId
+                    ? {school : {id : schoolId}}
+                    : {}
+                )
+                
             });
             // 🧠 aquí aún NO se guarda en la base de datos
 

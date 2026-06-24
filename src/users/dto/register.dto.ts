@@ -1,4 +1,4 @@
-import { IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
+import { IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from "class-validator";
 import { CreateUserDto } from "./create-user.dto";
 import { StudentDto } from "./create-student.dto";
 import { Transform, Type } from "class-transformer";
@@ -116,5 +116,12 @@ export class RegisterDto extends CreateUserDto {
     // ✅ Valida también las reglas internas de GuardianDto
     @ValidateNested()
     guardian?: GuardianDto;
+
+    @IsOptional()
+    @IsUUID('4',{
+        message: 'schoolId debe ser un UUID válido'
+    })
+    schoolId?: string
+
 
 }

@@ -12,6 +12,7 @@ POST -> https://proyecto-colegio-production.up.railway.app/api/auth/register
     "firstName" : "Marco",
     "lastName" : "Barón",
     "roleName": "ADMINISTRATOR",
+    "schoolId" : "c5fd365c-a158-4e33-a734-cbf30781dbc9",
     "administrator" :{
         "documentType" : "DNI",
         "documentNumber" : "12345678"

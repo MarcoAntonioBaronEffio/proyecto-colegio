@@ -123,6 +123,8 @@ export class CreateUserDto{
     avatarUrl?: string; // 🖼️ Url opcional del avatar
 
 
+    //schoolId?: string;
+
     // ✅ roleId también es opcional
     // ✅ Si no viene, no se validan los decoradores de abajo
     // @IsOptional()
