@@ -23,6 +23,7 @@ export enum SchoolYearStatus {
     PLANNED = 'PLANNED',
 
     // 🚀 Año escolar en curso
+    // ⚠️ Regla de negocio sugerida: Solo debería existir UN año escolar ACTIVE por colegio
     ACTIVE = 'ACTIVE',
 
     // 🔒 Año escolar cerrado definitivamente
@@ -31,14 +32,25 @@ export enum SchoolYearStatus {
 
 }
 
+
+
+// 🔐 RESTRICCIÓN ÚNICA COMPUESTA
+// 👉 En un sistema SaaS existen múltiples colegios
+// 👉 Por lo tanto, varios colegios pueden tener un año escolar 2026.
+// ✅ Permitido: 
+// 🔹 Colegio San Martín  -> 2026
+// 🔹 Colegio San Joaquín -> 2026
+// ❌ No permitido:
+// 🔹 Colegio San Joaquín -> 2026
+// 🔹 Colegio San Joaquín -> 2026
+// 🧠 La combinación (school + year) debe ser única
+// 🧠 Esto garantiza que un mismo colegio no tenga dos años escolares con el mismo año
+@Unique('UQ_school_year',['school','year'])  
+
 // 🧾 @Entity('school_years'):
 // - 👉 Le dice a TypeOrm que esta clase representa una tabla de la base de datos
 // - 👉 El nombre físico de la tabla será: school_years
 @Entity('school_years')
-
-// 🔐 @Unique(['year'])
-// 🔐 Crea una restricción única para que no existan dos filas con el mismo 'year'.
-@Unique(['year']) // Evita que existan dos años escolares con el mismo año
 export class SchoolYear{
 
     // 🔑 IDENTIFICADOR ÚNICO
@@ -157,8 +169,8 @@ export class SchoolYear{
 
 
 
-    // 🔗 RELACIÓN N:1 SCHOOL YEAR - SCHOOL
-    // 👉 Muchos años escolares pertecenen a un colegio
+    // 🔗 RELACIÓN N:1 SCHOOL YEAR - SCHOOL (MUCHOS A UNO)
+    // 👉 Muchos años escolares pertenecen a un colegio | Un colegio puede tener muchos años escolares
     // 🔹 Ejemplo:
     // Colegio Javier Heraud
     //   |--- 2025
@@ -167,7 +179,11 @@ export class SchoolYear{
     @ManyToOne(
         () => School, // 🏫 Entidad padre
         (school) => school.schoolYears, // 🔙 Propiedad inversa en School (school.schoolYears)
-        {onDelete : 'RESTRICT'}, // 🚫 No puedes eliminar el colegio si tiene años escolares asociados
+        {
+            // ✅ Obliga a que todo SchoolYear tenga un school_id válido
+            nullable : false,
+            // 🚫 Evita eliminar un colegio si tiene años escolares asociados
+            onDelete : 'RESTRICT'}, 
     )
     @JoinColumn({name : 'school_id'}) // 🧷 Esta relación usa la columna school_id como FK
     school! : School; // 🏫 Colegio propietario del año escolar

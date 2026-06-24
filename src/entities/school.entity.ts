@@ -1,107 +1,186 @@
 import { Column, CreateDateColumn, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { SchoolYear } from "./school-year.entity";
+import { User } from "./users.entity";
 
-
+// 🏫 ESTADO DEL COLEGIO DENTRO DEL SAAS
 export enum SchoolStatus{
+    // ✅ Colegio activo y con acceso normal al sistema
     ACTIVE = 'ACTIVE',
+    // 🎁 Colegio en periodo de prueba
+    TRIAL = 'TRIAL',
+    // 🚫 Colegio suspendido (por ejemplo, falta de pago)
+    SUSPENDED = 'SUSPENDED',
+    // ❌ Colegio deshabilitado definitavamente
     INACTIVE = 'INACTIVE'
 }
 
-// 🧩 Enum opcional para tipo de institución 
+// 🏛️ Tipo de institución educativa
 export enum InstitutionType{
-    PUBLIC = 'PUBLIC', // 🏛️ Pública
-    PRIVATE = 'PRIVATE', // 🏫 Privada
-    OTHER = 'OTHER' // 🧩 Otro
+    // 🏛️ Institución pública / estatal
+    PUBLIC = 'PUBLIC',       
+    // 💰 Institución privada
+    PRIVATE = 'PRIVATE',     
+    // 🤝 Institución de convenio
+    AGREEMENT = 'AGREEMENT'  
 }
 
-// 🧩 Enum para niveles ofrecidos
+// 🎓 Niveles educativos ofrecidos
 export enum LevelsOffered{
-    INITIAL = 'INITIAL', // 👶 Inicial
-    PRIMARY = 'PRIMARY', // 🧒  Primaria
-    SECONDARY = 'SECONDARY', // 🧑‍🎓 Secundaria
-    BOTH = 'BOTH', // 🧩 Primaria + Secundaria
-    ALL = 'ALL' // 🌎 Inicial + Primaria + Secundaria
+    // 👶 Inicial
+    INITIAL = 'INITIAL', 
+    // 🧒  Primaria
+    PRIMARY = 'PRIMARY', 
+    // 🧑‍🎓 Secundaria
+    SECONDARY = 'SECONDARY', 
+     // 🧩 Primaria + Secundaria
+    BOTH = 'BOTH',
+    // 🌎 Inicial + Primaria + Secundaria
+    ALL = 'ALL' 
 }
 
 // 🏫 Esta entidad representa a un colegio / institución educativa
-@Entity({name : 'school'}) // 🗃️ Nombre real de la tabla en la BD
+// 🔹 En arquitectura Saas: Cada registro representa un colegio diferente. 
+// 🔹 Ejemplo: Colegio San Joaquin, Colegio Javier Heraud, Colegio Amancio Varona
+// 🔹 Todas compartirán el mismo backend, pero cada uno tendrá sus propios usuarios, años escolares, grados, secciones, matrículas
+
+
+@Entity({name : 'schools'}) // 🗃️ Nombre real de la tabla en la BD
 export class School {
 
     // ==============================================
     // 🆔 Identidad
     // ==============================================
 
-    @PrimaryGeneratedColumn('uuid') // 🆔 PK tipo UUID 
-    id! : string; // 🧾 ID único del colegio
+    // 🆔 Identificador único global del colegio, PostgreSQL generará automáticamente un UUID
+    @PrimaryGeneratedColumn('uuid')  
+    id! : string;  
 
     // ==============================================
-    // 🏷️ Datos principales
+    // 🏷️ INFORMACIÓN GENERAL
     // ==============================================
 
-    // 🏷️ Datos principales
+    // 🏫 Nombre oficial del colegio
+    // 🔹 Ejemplo: I.E. San Joaquín
     @Index() // 🔎 Indice para búsquedas por nombre (listados, filtros)
     @Column({type: 'varchar', length: 150, nullable: false}) // 🏫 Nombre obligatorio
-    name! : string; // 🏫  Nombre del colegio (Ej: "I.E. Javier Heraud")
+    name! : string;  
 
-    @Index({unique: true}) // 🔒 índice + UNIQUE (clave corta del colegio)
+    // 🔑 Código interno único del colegio
+    // 🔹 Se usa para identificar rápidamente la institución
+    // 🔹 Ejemplo: SANJOAQUIN, JAVIERHERAUD
     @Column({type: 'varchar', length: 50, nullable: false, unique: true}) // 🧩 Código único
     code! : string; // 🧩 Código interno (Ej: "JAVIERHERAUD", "IEJAVIERHERAUD")
 
-    @Column({type: 'text', nullable: true}) // 📍 Dirección (opcional)
-    address?: string; // 📍 Ubicación / dirección
+    // 🌐 Slug amigable para URLs
+    // 🔹 Ejemplo: san-joaquin , javier-heraud
+    // 🔹 Futuro: https://app.com/san-joaquin | https://app.com/javier-heraud
+    @Column({
+        type:'varchar',
+        length: 100,
+        unique: true,
+        nullable : true
+    })
+    slug?: string;
 
-    @Column({type : 'varchar', length: 20, nullable: true}) // 📞 Teléfono (opcional)
-    phone?: string; // 📞 Teléfono institucional
+    // 🧾 RUC institucional
+    // 🔹 Opcional porque algunos colegios podrían registrarse inicialmente sin completar esta información
+    @Column({
+        type: 'varchar',
+        length: 11, 
+        nullable: true,
+        unique: true
+    })
+    ruc?: string;
 
+    // 📍 Dirección física
+    @Column({type: 'text', nullable: true})  
+    address?: string;  
+
+    // 📞 Teléfono institucional
+    @Column({type : 'varchar', length: 20, nullable: true})  
+    phone?: string;  
+
+    // 📧 Correo institucional
     @Index() // 🔎 Búsqueda rápida por email si algún día filtras instituciones
     @Column({type: 'varchar', length: 150, nullable: true}) // 📧  Email (opcional)
     email?: string; // 📧 Correo institucional
 
-    @Column({name: 'director_name', type: 'varchar', length: 150, nullable : true}) // 👨‍🏫 Director (opcional)
-    directorName?: string; // 👨‍🏫 Nombre del director (para reportes)
+     // 👨‍🏫 Nombre de director
+     // ⚠️ Solo texto visual. No tiene relación con la tabla User
+    @Column({name: 'director_name', type: 'varchar', length: 150, nullable : true})
+    directorName?: string;  
 
     // ==============================================
-    // 🖼️ Branding / imágenes
+    // 🖼️ Branding 
     // ==============================================
 
+    // 🖼️ Logo institucional
     @Column({name: 'logo_url', type: 'text', nullable: true}) // 🖼️ url del logo (opcional)
-    logoUrl?: string; // 🖼️ Logo del colegio (Storage/Cloud)
+    logoUrl?: string;
 
-    @Column({name : 'cover_image_url', type: 'text', nullable : true}) // 🏞️ Portada (opcional)
-    coverImageUrl?: string; // 🏞️ Imagen de portada para dashboard/app
+    // 🏞️ Imagen de portada para dashboard/app
+    @Column({name : 'cover_image_url', type: 'text', nullable : true})  
+    coverImageUrl?: string;
     
     // ==============================================
     // 🌎 Ubicación (útil y realista)
     // ==============================================
 
-    @Column({type: 'varchar', length: 80, nullable : true}) // 🌎 País (opcional)
-    country?: string; //🌎 Ej: "Perú"
+    // 🇵🇪 Departamento
+    // 🔹 Ejemplo: Lambayeque , La Libertad
+    @Column({type: 'varchar', length: 80, nullable : true})  
+    department?: string; 
 
-    @Column({type: 'varchar', length: 80, nullable : true}) // 🏙️ Ciudad (opcional)
-    city?: string; // 🏙️ Ej: "Chiclayo"
+    // 🏙️ Provincia
+    // 🔹 Ejemplo: Chiclayo
+    @Column({type: 'varchar', length: 80, nullable : true})  
+    province?: string;  
 
-    @Column({type: 'varchar', length: 80, nullable : true}) // 🧾 Distrito (opcional)
-    district?: string; // 🧾 ej : "José Leonardo Ortiz"
+    // 🧾 Distrito
+    // 🔹 Ejemplo: Tumán, José Leonardo Ortiz
+    @Column({
+        type: 'varchar',
+        length: 80,
+        nullable: true
+    })
+    district?: string;
 
     // ===============================================
-    // 🏛️ Configuración académica ligera
+    // 🏛️ Configuración académica 
     // ===============================================
 
+    // 🏛️ Tipo de institución
     @Column({
         name : 'institution_type',
         type: 'enum', // 🧩 Enum en PostgreSQL
         enum : InstitutionType, // 🧩 Valores permitidos
-        default: InstitutionType.OTHER // ✅ Defult seguro
+        default: InstitutionType.PRIVATE // ✅ Defult seguro
     })
     institutionType!: InstitutionType; // 🏛️ Pública / Privada / Otro
 
+    // 🎓 Niveles que ofrece el colegio
     @Column({
-        name: 'level_offered',
+        name: 'levels_offered',
         type:'enum', // 🧩 Enum en PostgreSQL
         enum: LevelsOffered, // 🧩 Valores permitidos
         default: LevelsOffered.BOTH, // ✅ Default común (Primaria + Secundaria)
     })
-    levelsOffered!: LevelsOffered; // 🎓 Niveles que ofrece 
+    levelsOffered!: LevelsOffered;  
+
+    // ===============================================
+    // 💳 Información SaaS
+    // ===============================================
+
+    // 📅 Fecha hasta la cual tiene acceso
+    // 🔹 Ejemplo: 
+    // 👉 Trial hasta el 15 de agosto
+    // 👉 Pago hasta el 30 de diciembre
+    @Column({
+        name: 'subscription_expires_at',
+        type: 'timestamptz',
+        nullable: true
+    })
+    subscriptionExpiresAt?: Date;
 
     // ===============================================
     // ✅ Estado
@@ -110,7 +189,7 @@ export class School {
     @Column({
         type : 'enum',
         enum : SchoolStatus,
-        default: SchoolStatus.ACTIVE
+        default: SchoolStatus.TRIAL
     })
     status!: SchoolStatus;
 
@@ -137,11 +216,26 @@ export class School {
     // ===============================================
     // 🔗 Relaciones
     // ===============================================
+
+    // 🗓️ Un colegio puede tener múltiples años escolares
+    // 🔹 Ejemplo: 2025, 2026, 2027
     @OneToMany(
         () => SchoolYear, // 🗓️ Entidad hija
         (schoolYear) => schoolYear.school, //🔙 Propiedad inversa en SchoolYear
     )
     schoolYears!: SchoolYear[]; // 🗓️ Un colegio tiene muchos años escolares
+
+
+    
+
+    // 👥 Un colegio tiene muchos usuarios
+    // 🔹 Ejemplo: Administradores, Docentes, Apoderados
+    // ⚠️ Esta relación es CLAVE para convertir el sistema en multicolegio SaaS
+    @OneToMany(
+        () => User,
+        (user) => user.school
+    )
+    users!: User[]
 
     
 }

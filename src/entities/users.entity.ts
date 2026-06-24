@@ -5,6 +5,7 @@ import { Administrator } from "./administrator.entity";
 import { Teacher } from "./teacher.entity";
 import { Guardian } from "./guardian.entity";
 import { SystemAdministrator } from "./system_administrator.entity";
+import { School } from "./school.entity";
 
 // 🔗 RELACIONES UNO A UNO (PERFILES DEL USUARIO)
 
@@ -205,4 +206,38 @@ export class User {
 
     @OneToOne(() => Guardian, (guardian) => guardian.user)
     guardian?: Guardian;
+
+    // 🏫 RELACIÓN USER -> SCHOOL
+    // 👉 Muchos usuarios pueden pertenecer a un mismo colegio
+    // 🔹 Ejemplo:
+    //   Colegio San Joaquín
+    //   |-- Administrador
+    //   |-- Docente de Matemática
+    //   |-- Apoderado María
+    // 🔹 Todos ellos compartirán el mismo "school_id"
+    // 🔹 Relación: School 1 ------- N usuarios
+    @Index()
+    @ManyToOne(
+        () => School, // 🏫 Entidad padre (colegio)
+        (school) => school.users, // 🔙 Propiedad inversa en School
+        {
+            // ⚠️ IMPORTANTE PARA EL SaaS
+            // 🔹 El campo puede ser null porque existe el rol SYSTEM_ADMINISTRATOR
+            // 🔹 Un System Administrator administra TODA la plataforma, por lo tanto NO pertenece a un colegio específico
+            nullable: true
+        }
+    )
+    @JoinColumn({name : 'school_id'}) // 🗂️ Nombre real de la clave foránea en PostgreSQL
+    // 🏫 Colegio al que pertenece el usuario
+    // 🔹 Será NULL para los usuarios con rol SYSTEM_ADMINISTRATOR
+    // 🔹 Los demás roles (ADMINISTRATOR, TEACHER, STUDENT y GUARDIAN) deben pertenecer obligatoriamente a un colegio
+    // 🔹 Esta validación debe realizarse en la capa de negocio (Service) ya que la base de datos permite NULL para soportar
+    //   a superadministradores.
+    school?: School;
 }
+
+// SYSTEM_ADMINISTRATOR -> school_id = NULL
+// ADMINISTRATOR -> school_id (obligatorio)
+// TEACHER       -> school_id (obligatorio)
+// STUDENT       -> school_id (obligatorio)
+// GUARDIAN      -> school_id (obligatorio)

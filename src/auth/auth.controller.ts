@@ -20,6 +20,7 @@ import { RegisterDto } from 'src/users/dto/register.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { MenuService } from 'src/common/services/menu.service';
 import { RoleName } from 'src/entities/users.entity';
+import { use } from 'passport';
 
 // 🔹 Prefijo del controlador: todas las rutas aquí dentro comienzan con /auth
 @Controller('auth')
@@ -69,6 +70,7 @@ export class AuthController {
             email : user.email,
             roleId: user.roleId,
             roleName: user.roleName,
+            schoolId: user.schoolId
         });
 
         const menu = this.menuService.getMenuByRole(user.roleName);
@@ -84,6 +86,7 @@ export class AuthController {
                 email: user.email, // email
                 roleId: user.roleId, // rol de usuario
                 roleName: user.roleName, // nombre del rol
+                schoolId : user.schoolId, // colegio del usuario
                 menu
             },
         };

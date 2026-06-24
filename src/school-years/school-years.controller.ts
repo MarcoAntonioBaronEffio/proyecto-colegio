@@ -6,7 +6,9 @@ import {
     Get,        // 📥 Manejará solicitudes HTTP GET
     Param,      // 🏷️ Lee parámetros dinámicos de la URL (ej: /:id)
     Patch,      // 🔁 Manejará solicitudes HTTP PATCH (actualizaciones parciales)
-    UseGuards,  // 🛡️ Aplica guardias de seguridad (JWT, roles) a métodos o a toda la clase
+    UseGuards,
+    Req,
+    ForbiddenException,  // 🛡️ Aplica guardias de seguridad (JWT, roles) a métodos o a toda la clase
 } from '@nestjs/common';
 
 // 🧠 Capa de negocio específica de Años escolares (CRUD + reglas)
@@ -18,7 +20,9 @@ import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 // 🧩 Entidad para tipar las respuestas 'data'
 import { SchoolYear } from 'src/entities/school-year.entity';
 import { UpdateSchoolYearDto } from './dto/update-school-year.dto'; 
-import { Public } from 'src/common/decorators/public.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RoleName } from 'src/entities/users.entity';
+import type { AuthRequest } from 'src/common/interfaces/auth-request-interface';
 
 
 // 🔐 Autenticación + Autorización por roles
@@ -29,6 +33,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 
 // 📚 @Controller('school-years') -> Prefijo de ruta del controlador:
 // - Todas las rutas aquí comenzarán con /school-years (ej: POST /school-years, GET /school-years/:id, etc.)
+@Roles(RoleName.ADMINISTRATOR)
 @Controller('school-years')
 export class SchoolYearsController {
     // 🧩 Inyección de dependencias:
@@ -40,16 +45,32 @@ export class SchoolYearsController {
     // - Endpont: POST http://localhost:3000/api/school-years
     // - Body: CreateSchoolYearDto (ej: {year, startsOn?, endsOn?})
     // - Seguridad (recomendada): JWT + Roles('admin')
-    @Public()
-    //@Roles(UserRole.ADMINISTRATOR)
     @Post()
-    //@UseGuards(JwtAuthGuard, RolesGuard) // 🛡️ Primero autentica (JWT), luego autoriza (roles).
-    //@Roles('admin')                      // 👑 Solo usuarios con rol "admin".
     // 📦 Extraemos el cuerpo de la petición y lo validamos según el DTO
-    async create(@Body() dto: CreateSchoolYearDto) : Promise<ApiResponse<SchoolYear>>{ 
+    async create(
+        @Body() dto: CreateSchoolYearDto,
+        @Req() req : AuthRequest
+    ) : Promise<ApiResponse<SchoolYear>>{ 
+
+        // 🔹 En este punto la petición ya fue autenticada mediante JWT
+        // 🔹 JwtStrategy validó el token y construyó req.user
+        // 🔹 RolesGuard también verificó que el usuario sea ADMINISTRADOR
+    
+        // 🏫 Colegio asociado al administrador autenticado
+        const schoolId = req.user.schoolId;
+
+        // 🛡️ Un administrador siempre debe pertenecer a un colegio
+        if(!schoolId){
+            throw new ForbiddenException(
+                'El usuario no pertenece a ningún colegio'
+            );
+        }
       
-        // 🚀 Llamamos al servicio para crear el nuevo año escolar
-        const created = await this.service.create(dto);
+        // 🚀 Creamos el año escolar para el colegio del administrador
+        const created = await this.service.create(
+            dto,
+            schoolId
+        );
 
         // 📨 Retornamos una respuesta uniforme con el formate ApiResponse
         return{
@@ -64,12 +85,16 @@ export class SchoolYearsController {
     // - Devuelve todos los años escolares existentes en la base de datos.
     // - Ideal para mostrarlos en el panel del administrador.
     @Get() // 📥 Escucha peticiones HTTP GET en /school-years
-    async findAll() : Promise<ApiResponse<SchoolYear[]>>{
+    async findAll(
+        @Req() req: any
+    ) : Promise<ApiResponse<SchoolYear[]>>{
 
-        console.log('🚀 Entró al Controller')
+        //console.log('🚀 Entró al Controller')
 
         // 🔎 Llamamos al servicio para traer todos los años escolares.
-        const years = await this.service.findAll();
+        const years = await this.service.findAll(
+            req.user.schoolId
+        );
 
         // 📨 Devolvemos la lista con el formato ApiResponse
         return{

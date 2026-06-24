@@ -5,4 +5,6 @@ export interface AuthUser{
     email : string;
     roleId : string;
     roleName : RoleName;
+    schoolId? : string;
 }
+

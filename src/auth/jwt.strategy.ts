@@ -120,121 +120,141 @@ import { PassportStrategy } from "@nestjs/passport";
 
 
 import {Strategy , ExtractJwt} from "passport-jwt";
+import { JwtPayload } from "./types/jwt-payload-type";
  
-// 🧩 Definimos el tipo del payload del JWT
-// 👉 Esto representa EXACTAMENTE lo que tú guardas cuando firmas el token
-// 👉 Sirve para tener tipado fuerte en el método validate()
-type JwtPayload = {
-    sub : string;   // 🔹 ID del usuario (subject)
-    email : string; // 🔹 correo del usuario
-    roleName : string; // 🔹 rol del usuario (si lo agregas al firmar)
-}
+// 🧩 El tipo JwtPayload se encuentra definido en un archivo independientemente
+// 👉 Define la estructura (molde) de los datos que se almacenan dentro del JWT
+// 👉 No contiene datos reales; únicamente describe qué propiedades tendrá el payload cuando el token sea generado y posteriormente validado
+//
+// 💡 Ejemplo de estructura:
+/* 
+    {
+        sub : string;
+        email : string;
+        roleId : string;
+        roleName : string;
+        schoolId : string;
+    }
+*/
+
 
 // ✅ Marcamos la clase como inyectable
-// 👉 Nest podrá usar esta clase automáticamente dentro del sistema de autenticación
+// 👉 NestJS podrá crear e inyectar automáticamente una instancia de esta estrategia dentro del sistema de autenticación
 @Injectable()
  
-// ✅ Extendemos PassportStrategy con Strategy (JWT)
-// 👉 'jwt' = nombre de la estrategia
-// 👉 Esto conecta directamente con AuthGuard('jwt')
-// 🔥 Traducción: "Cuando alguien use AuthGuard('jwt'), usa ESTE clase para validar el token"
+// ✅ Extendemos PassportStrategy utilizando la estrategia JWT
+// 👉 'jwt' es el nombre de la estrategia
+// 👉 Esto la conecta directamente con AuthGuard('jwt')
+//
+// 💡 Traducción: "Cuando una ruta utilice AuthGuard('jwt'), Passport usará esta clase para validar el token.
+// 🧠 Flujo general: JWT -> AuthGuard('jwt) -> JwtStrategy -> validate() -> request.user
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt'){ 
 
-    // 🧠 CONSTRUCTOR -> CONFIRMA cómo se valida el token
-     constructor(){
+    // 🧠 Constructor de la estrategia JWT
+    // 👉 Aquí configuramos las reglas que Passport utilizará para validar los tokens recibidos en las peticiones
+    constructor(){
        
         // 🔥 super(...) inicializa la estrategia JWT
-        // 👉 Aqui defines TODAS las reglas de validación del token
+        // 👉 Todas las opciones definidas aquí serán utilizadas por Passport para autenticar el token
         super({ 
 
             // 🔹 ¿De dónde se obtiene el token?
-            // 👉 Del header:
+            // 👉 Del header - encabezado:
             // Authorization: Bearer <token>
-            // 💡 Passport automáticamente lo extrae usando esta función
+            // 💡 Passport extraerá automáticamente el token desde dicho header
             jwtFromRequest : ExtractJwt.fromAuthHeaderAsBearerToken(), 
             
-            // 🔹 ¿Aceptamos tokens expirados?
+            // 🔹 ¿Se permiten tokens expirados?
             // 👉 false = NO (recomendado en producción)
             // 👉 true = aceptaría tokens vencidos (NO recomendado)
             ignoreExpiration : false, 
             
-            // 🔹 Clave secreta para validar la firma del token
-            // 👉 Debe ser EXACTAMENTE la misma que usaste al crear el JWT
-            // 👉 Ejemplo en tu AuthService: sign(payload, {secret: JWT_SECRET})
-            // ⚠️ Si no coincide -> el token será inválido
+            // 🔹 Clave secreta utilizada para verificar la firma del JWT
+            // 👉 Debe coincidir exactamente con la clave utilizada por JwtModule al momento de firmar los tokens
+            // 👉 Ejemplo de firma: return await this.jwt.signAsync(payload)
+            //
+            // 💡 Aunque aquí no veas el secret, JwtService utiliza internamente la configuración registrada en JwtModule
+            // 🔹 Si la clave usada para verificar y la clave usada para firmar no conciden: ❌ El token será rechazado
             secretOrKey : process.env.JWT_SECRET as string, 
 
-            // 🧠 IMPORTANTE:
-            // 👉 Si el token pasa todas las validaciones (firma + expiración)
-            // 👉 Passport continuará y ejecutará el método validate()
+            // 🧠 Si el token:
+            // ✅ Tiene una firma válida
+            // ✅ No está expirado
+            //
+            // 🔹 Passport ejecutará automáticamente el método: validate(payload)
         });
     }
 
  
     // ✅ Método clave -> validate()
-    // 👉 Este método se ejecuta automáticamente cuando el token es válido
-
+    // 👉 Este método se ejecuta automáticamente después de que Passport haya validado correctamente el JWT.
+    // 
+    // 🔹 Verifica la firma del token
+    // 🔹 Verifica que no esté expirado
+    // 🔹 Decodifica el payload
+    //
+    // ⚠️ IMPORTANTE:
+    // 🔹 En este punto NO estás validando el token
+    // 🔹 Passport ya hizo todo ese trabajo antes de llegar aquí
+    //
     // 🧠 ¿Qué recibe?
-    // 👉 El payload ya:
-    // 🔐 validado (firma correcta)
-    // ⌛️ verificado (no expirado)
-    // 📦 decodificado
+    // 👉 Recibe un payload que fue firmado al generar el JWT
+    // 👉 Su "estructura" está definida por el tipo JwtPayload
+    //
+    // 🔹 Ejemplo:
+    /*
+        {
+            "sub" : "123",
+            "email" : "admin@test.com",
+            "roleId" : "456",
+            "roleName" : "ADMINISTRATOR",
+            "schoolId" : "789"
+        }
+    */
 
-    // 🔥 IMPORTANTE:
-    // 👉 Aqui ya NO estás validando el token
-    // 👉 Eso YA lo hizo Passport antes
+    // 👉 
+    async validate (payload : JwtPayload) {
 
-    // 🧠 Este método sirve para:
-    // 👉 Decidir qué datos quieres guardar en request.user
-    async validate (payload : JwtPayload){
-
-        // 🧠 payload contiene lo que tú firmaste en el JWT
-        // 👉 Ejemplo:
-        /* 
-            sub: "123",
-            email : "admin@test.com",
-            roleName : "ADMINISTRATOR"
-        */
-
-        // 🔥 Lo que retornes aqui:
-        // 👉 se guarda automáticamente en: request.user
-
-        // 💡 Ejemplo final:
-        /* 
-            request.user ) {
-                sub: "123",
-                email : "admin@test.com",
-                roleName: "ADMINISTRATOR"
-            }
-        */
-
-        // 🔥 PREGUNTA CLAVE:
-        // 👉 ¿Quién recibe esto?
-        // 👉 Si el token es válido esto lo recibe automáticamente NestJs y lo guarda en: request.user
-        // ⭐️ Passport toma este return y se lo asigna automáticamente a: request.user
-        // 🧠 Resultado final: En cualquier controller o guard tendrás:
-        /* 
+        // 🔥 Todo lo que retornes aquí será asignado automáticamente a request.user por Passport.
+        // 🔹 Como nuestro payload ya contiene exactamente los datos que queremos tener disponibles durante la petición, 
+        //    simplemente lo retornamos completo.
+        // 
+        // 👉 Resultado:
+        /*
+        
             request.user = {
-                sub: "123",
-                email: "admin@test.com",
-                roleName: "ADMINISTRATOR"
+                sub : "123",
+                email : "admin@test.com",
+                roleId : "456",
+                roleName : "ADMINISTRATOR",
+                schoolId : "789"
             }
-        */
-        return {
-            sub: payload.sub,
-            email : payload.email,
-            roleName : payload.roleName
-        };
 
+            // 🏫 Nota: 
+            // 👉 schoolId puede ser undefined cuando el usuario es SYSTEM_ADMINISTRATOR, ya que no pertecene a ningún colegio.
+         */
+        return payload
+ 
         
     }
 }
 
 // 🔵 2. jwt.strategy.ts
-// 👉 Este es el VERIFICADOR del token 🧠
-// Qué hace
-// - Toma el token
-// - Lo decodifica
-// - Verifica que sea válido
-// - Extrae datos (userId, role, email)
-// 💡 En simple: ❗️ ¿El token es real o fake?
+// 👉 Estrategia JWT utilizada por Passport para autenticar usuarios.
+//
+// 🧠 ¿Qué hace?
+// ✅ Obtiene el token desde el header Authorization
+// ✅ Verifica la firma del JWT
+// ✅ Verifica que el token no esté expirado
+// ✅ Decodifica el payload
+// ✅ Extrae la información del usuario
+// ✅ Construye el objeto que terminará en request.user
+//
+// 💡 En palabras simples:
+// 👉 Se encarga de responder: ¿Este token es válido y a qué usuario pertenece?
+
+// 🔥 Si el token es inválido
+// ❌ La petición será rechazada automáticamente
+
+// 🔥 Si el token el válido
+// ✅ Se ejecutará el método validate()

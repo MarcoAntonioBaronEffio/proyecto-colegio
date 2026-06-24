@@ -3,7 +3,8 @@ import {
     Injectable,         // 💉 Decorador que indica que la clase se puede inyectar como dependencia
     NotFoundException,  // ❌ Excepción para cuando no se encuentre un recurso (404)
     BadRequestException, // ⚠️ Excepción para solicitudes inválidas o no permitidas
-    InternalServerErrorException
+    InternalServerErrorException,
+    BadGatewayException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm'; // 🧩 Permite a Nest inyectar un repositorio TypeOrm
 import { QueryFailedError, Repository } from 'typeorm'; // 🗃️ Clase genérica para acceder a métodos CRUD
@@ -32,85 +33,201 @@ export class SchoolYearsService {
 
     // 🧠 Método para crear un nuevo año escolar
     // 📤 Devuelve el año escolar recién creado
-    async create(dto: CreateSchoolYearDto) : Promise<SchoolYear>{
+    async create(
+        dto: CreateSchoolYearDto,
+        // 🏫 Identificador del colegio al que pertenece el usuario autenticado
+        // 👉 El controlador normalmente obtendrá este valor desde el JWT
+        // 🔹 req.user.schoolId
+        schoolId: string
+    ) : Promise<SchoolYear>{
+
         try{
 
-        // ✅1️⃣ Buscamos el único colegio DEFAULT
-        // 👉 Todos los años escolares permanecerán a este colegio
-        const school = await this.schoolRepo.findOne({
-            where: {
-                code: 'DEFAULT',
-            }, // 🏫 Buscamos el colegio sembrado por tu seed (code fijo) 
-        });
+            // 1️⃣ BUSCAR EL COLEGIO DEL USUARIO AUTENTICADO
+            // 🔍 Buscamos el colegio usando el schoolId recibido
+            // 👉 Esto garantiza que el año escolar será creado dentro del colegio
+            const school = await this.schoolRepo.findOne({
+                where : {
+                    id : schoolId,
+                }
+            });
 
-        // 🚫 Si no existe el colegio, significa que no corriste el seed o se borró el registro
-        if(!school){
-            // ❌ Lanzamos 404 porque "no existe el recurso requerido para continuar"
-            throw new NotFoundException(
-                'No existe el colegio DEFAULT. Ejecuta: npm run seed:school',
-            );
-        }
+            // 🚫 Si el colegio no existe, detenemos el proceso.
+            // 👉 Puede ocurrir si el colegio fue eliminado o si el JWT contiene información inválida
+            if(!school){
+                throw new NotFoundException(
+                    `No existe el colegio con id ${schoolId}`,
+                );
+            }
 
-        // 🔎2️⃣ Verificamos que no exista otro año escolar con el mismo año
-        // 👉 Gracias a @Unique(['year']) no permitimos duplicados
-        const exists = await this.repo.findOne({
-            where: {
-                year: dto.year, // 📅 Año
-            }});
+            // 2️⃣ VALIDAR DUPLICADOS
 
-        // 🚫 Si existe el año, lanzamos un error 400 Confict
-        // 🚫 No permitimos años duplicados
-        if(exists){
-            throw new ConflictException(`El año escolar ${dto.year} ya existe`);
-        }
- 
+            // 🔍 Verificamos si ya existe un año escolar con el mismo año dentro del mismo colegio
+            // ✅ Permitido:
+            // 🔹 Colegio A -> 2026
+            // 🔹 Colegio B -> 2026
+            // ❌ No permitido:
+            // 🔹 Colegio A -> 2026
+            // 🔹 Colegio A -> 2026
+            const exist = await this.repo.findOne({
+                where: {
+                    year : dto.year,
+                    // 🏫 La validación ahora también considera el colegio
+                    school: {
+                        id : schoolId
+                    },
+                },
+                // 🔗 Necesario cuando filtramos usando propiedades de relaciones
+                /*relations: {
+                    school : true,
+                },*/
+            });
 
-        // 🏗️3️⃣ Creamos la entidad
-        const entity = this.repo.create({
-            ...dto,                            // 📦 Copiamos todas las propiedades del DTO (año, fechas, etc). 
-            status: SchoolYearStatus.PLANNED,  // 📝 Todo año escolar nuevo inicia como PLANIFICADO
-            // 🏫 Asociamos el colegio DEFAULT al año escolar
-            // 👉 La propiedad "school" es una relación ManyToOne
-            // 👉 TypeOrm tomará automáticamente el id del colegio y lo almacenará en la columna FK "school_id"
-            school : school,                   
-        });
-        
-        // 💾 4️⃣ Guardamos y devolvemos el registro creado
-        return await this.repo.save(entity);
+            // 🚫 Si ya existe el mismo año para este colegio, lanzamos un conflicto
+            if(exist){
+                throw new ConflictException(
+                    `El año escolar ${dto.year} ya existe para este colegio`,
+                );
+            }
 
-        // 🔹 Atrapamos el error
-        }catch(error){
+            // 3️⃣ CREAR ENTIDAD
 
-            // ✅ Re-lanzamos los errores controlados
+            // 🏗️ Creamos una nueva instancia de SchoolYear
+            const entity = this.repo.create({
+                // 📦 Copiamos la propiedad enviadas por el cliente
+                ...dto,
+                // 📝 Todo año escolar inicia como PLANIFICADO
+                status: SchoolYearStatus.PLANNED,
+                // 🏫 Asociamos el colegio encontrado
+                // 👉 TypeORM tomará automáticamente el id del colegio y lo almacenará en la FK school_id
+                school
+            });
 
-            // 🔹 Detectamos si el error es un Conflict, BadRequest o NotFound
-            // 🧱 Este bloque 'catch' se ejecuta si algo falla dentro de 'try'.
-            // Es decir, si en el 'try' se lanzó un 'throw' (ya sea nuestro, o un error de TypeORM, o cualquier cosa que lance una excepción).
-            // 🎯 Aquí hacemos una PRIMERA PREGUNTA :
-            // 👉 ¿Este error es uno de los que YO lancé a propósito?
+            // 4️⃣ GUARDAR EN BASE DE DATOS
+
+            // 💾 Persistimos el registro
+            return await this.repo.save(entity);
+
+        }catch (error){
+
+            // 5️⃣ Errores CONTROLADOS
+
+            // 🔁 Si es un error que nosotros mismos lanzamos, lo reenviamos sin modificar
             if(
-                error instanceof ConflictException || // ❗ Si el error es un conflicto (ej: año duplicado)
-                error instanceof BadRequestException || // ⚠️ Si es un error de petición inválida (ej: datos malos)
-                error instanceof NotFoundException    // ❌ Si es un "no encontrado" (ej: año no existe)
+                error instanceof ConflictException ||
+                error instanceof BadRequestException ||
+                error instanceof NotFoundException
             ){
-                // 🔹 throw error -> Lo vuelve a lanzar el error ya atrapado, para que NESTJS construya y envíe el JSON con el código y mensaje correctos..
-                // 🔁 En este caso NO lo tocamos, NO lo cambiamos.
-                // Simplemente lo volvemos a lanzar tal cual.
-                // ¿Por qué? porque:
-                // - Ya trae su código HTTP correcto (404, 409, 400)
-                // - Ya trae un mensaje claro que tú definiste.
-                // 🔹 entonces 
                 throw error;
             }
-            // Si es error SQL/TypeORM 
-            if(error instanceof QueryFailedError){
-                throw new BadRequestException('Error de base de datos al crear el año escolar');
-            }
 
-            // 💥 Cualquier otro error raro -> 500
-            throw new InternalServerErrorException('Error inesperado al crear el año escolar');
+            // 6️⃣ ERRORES DE BASE DE DATOS
+            
+            // ⚠️ Error proveniente de PostgreSQL o TypeORM
+            if(error instanceof QueryFailedError){
+                throw new BadRequestException(
+                    'Error de base de datos al crear el año escolar',
+                );
+            } 
+
+            // 7️⃣ ERRORES INESPERADOS
+            // 💥 Cualquier error no controlado termina en 500
+            throw new InternalServerErrorException(
+                'Error inesperado al crear el año escolar'
+            )
         }
     }
+
+
+    // 📋 Método para obtener todos los años escolares
+    // 🏫 En arquitectura SaaS solamente devolveremos los años escolares pertenecientes al colegio del usuario autenticado
+    async findAll(
+        // 🏫 Id del colegio obtenido normalmente desde el JWT
+        // 👉 Ejemplo: req.user.schoolId
+        schoolId : string,
+    ) : Promise<SchoolYear[]>{
+        try{
+
+            // 1️⃣ VALIDAR QUE EL COLEGIO EXISTA
+
+            // 🔍 Buscamos el colegio asociado al usuario
+            // 👉 Esto evita consultar años escolares de un colegio inexistente
+            const school = await this.schoolRepo.findOne({
+                where: {
+                    id: schoolId,
+                },
+            });
+
+            // 🚫 Si el colegio no existe detenemos el proceso
+            // 👉 Puede ocurrir si fue eliminado o si el JWT contiene información inválida
+            if(!school){
+                throw new NotFoundException(
+                    `No existe el colegio con id ${schoolId}`,
+                );
+            }
+
+            // 2️⃣ OBTENER LOS AÑOS ESCOLARES DEL COLEGIO
+
+            // 🔎 Buscamos únicamente los años escolares pertenecientes al colegio autenticado
+            const years = await this.repo.find({
+
+                where : {
+                    // 🏫 Filtramos por colegio
+                    // 👉 De esta manera un administrador jamás podrá ver los años escolares de otro colegio
+                    school: {
+                         id : schoolId
+                    },
+                },
+                order:{
+                    // ⬆️ Order ascendente: 2024, 2025, 2026
+                    year : 'ASC',
+                },
+            });
+
+            // 3️⃣ DEVOLVER RESULTADOS
+
+            // ✅ Retornamos la lista obtenida
+            // 👉 Si no existen registros TypeORM devolverá []
+            // 👉 No es necesario lanzar excepción
+            return years;
+
+        }catch(error){
+
+            // 4️⃣ ERRORES CONTROLADOS
+
+            // 🔁 Si el error ya fue lanzado por nosotros, simplemente lo reenviamos
+            if ( error instanceof NotFoundException) {
+                throw error;
+            }
+
+            // 5️⃣ ERRORES DE BASE DE DATOS
+
+            // ⚠️ Error proveniente de PostgreSQL o TypeORM
+            if(error instanceof QueryFailedError){
+                throw new BadRequestException(
+                    'Error de base de datos al obtener los años escolares',
+                );
+            }
+
+            // 6️⃣ ERRORES INESPERADOS
+            // 💥 Cualquier otro error termina como 500
+            throw new InternalServerErrorException(
+                'Error inesperado al obtener los años escolares',
+            );
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
     // ✏️ Método update 
     // 📌 Este método sirve para actualizar un año escolar existente en la base de datos
@@ -245,41 +362,7 @@ export class SchoolYearsService {
         }
     }
 
-    // 📋 Método para obtener todos los años escolares registrados 
-    async findAll() : Promise<SchoolYear[]>{
-        try{
 
-            // 🔎 Obtenemos todos los años escolares
-            // ⬇️ Ordenados desde el más reciente hasta el más antiguo
-            const years = await this.repo.find({
-                order: {
-                    year: 'ASC',
-                }, 
-            });
-
-            // ✅ Devolvemos la lista
-            // 👉 Si no existen registros, simplemente retornará []
-            return years;
-
-        }catch(error){
-            // 🎯 1️⃣ Verificamos si el error que llegó es un NotFoundException.
-            // 👉 ¿Por qué hacemos esto? -> Porque si el servicio lanzó un: throw new NotFoundException('No existe tal año escolar')
-            // Ese error YA VIENE con:
-            // - El código HTTP correcto (404)
-            // - Un mensaje claro que tú mismo definiste
-            // ⚠️ Entonces: NO debemos cambiarlo.
-            // Solo lo relanzamos para que NESTJS lo mando tal cual a la respuesta.
-            if(error instanceof NotFoundException) throw error;
-
-            //  💥 2️⃣ Si NO es NotFoundException, entonces cayó error desconocido
-            // 👉 Puede ser: un error de TypeORM, un error de conexión, un error de lógica que no controlaste
-            // 🧯 Para no mostrar detalles internos del servidor, respondemos con un BadRequestException genérico.
-            // 🔐 Esto evita filtrar información sensible del servidor y da al usuario final un mensaje entendible.
-            throw new BadRequestException('Error inesperado al obtener los años escolares');  
-
-        }
-        
-    }
 
     // 📋 Método para buscar un año específico por su ID (UUID)
     async findOne(id : string) : Promise<SchoolYear>{

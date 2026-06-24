@@ -3,6 +3,7 @@
 
 // 📦 Importamos decoradores del paquete 'class-validator'
 // ⚙️ Estos decoradores nos ayudan a validar automáticamente las propiedades del DTO.
+import { Type } from "class-transformer";
 import { 
     IsInt,       // 🔢 Valida que el campo sea un número entero (integer)
     IsOptional,  // 🟡 Indica que un campo es opcional (no es obligatorio en la solicitud)
@@ -17,6 +18,7 @@ import {
 export class CreateSchoolYearDto{
 
 // 🎓 AÑO ESCOLAR
+@Type(() => Number)
 // 🧩 Campo: year (año escolar)
 @IsNotEmpty({message: 'El año escolar es obligatorio'})
 // 🔹 @IsInt -> valida que el valor sea un número entero

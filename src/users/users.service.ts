@@ -224,6 +224,8 @@ export class UsersService {
         // - AND SELECT: además de unir, también selecciona (incluye) las columnas del rol.
         // Resultado: el objeto User vendrá con user.role ya cargado.
         .leftJoinAndSelect('user.role', 'role')
+        // 🏫 Carga también el colegio del usuario
+        .leftJoinAndSelect('user.school', 'school')
 
         // 🎯 Filtro WHERE con parámetro nombrado (:email) para evitar SQL injection.
         // 1️⃣ 'user.email =: email':

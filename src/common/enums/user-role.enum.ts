@@ -14,6 +14,8 @@ export enum RoleName{
     // 👉 Gestiona usuarios, años escolares, grados, aula, etc
     ADMINISTRATOR = 'ADMINISTRATOR',
 
+
+    
     // 👨‍🏫 TEACHER
     // 👉 Docente del colegio
     // 👉 Gestiona notas, asistencias y actividades académicas

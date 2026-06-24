@@ -20,21 +20,21 @@ POST -> https://proyecto-colegio-production.up.railway.app/api/auth/register
 ⬅️ respuesta:
 
 {
-    "succes": true,
+    "success": true,
     "message": "System Administrator registrado con éxito",
     "data": {
-        "id": "1ad72de7-d119-4acf-a95b-c5b318994ae8",
+        "id": "e54db3f8-bd18-499c-a679-6269444a8c4e",
         "email": "systemadmin@admin.com",
         "firstName": "Marco Antonio",
         "lastName": "Barón Effio",
         "role": {
-            "id": "7e9ae337-1fca-4b6a-8ed5-30ee50a41c26"
+            "id": "e707fdcf-d0fa-40b7-a5c8-9c89ffb576c3"
         },
         "phone": null,
         "address": null,
         "avatarUrl": null,
         "status": "ACTIVE",
-        "createdAt": "2026-06-23T00:54:18.833Z",
-        "updatedAt": "2026-06-23T00:54:18.833Z"
+        "createdAt": "2026-06-24T06:48:43.578Z",
+        "updatedAt": "2026-06-24T06:48:43.578Z"
     }
 }

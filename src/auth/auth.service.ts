@@ -24,6 +24,8 @@ import { CodeGenerator } from 'src/common/utils/code-generator.util';
 import { SystemAdministrator } from 'src/entities/system_administrator.entity';
 import { AuthUser } from './interfaces/auth-user.interface';
 import { RoleName } from 'src/entities/users.entity';
+import { use } from 'passport';
+import { JwtPayload } from './types/jwt-payload-type';
 
 
 // 🔹 Indicamos que esta clase es un "servicio" inyectable en NestJS.
@@ -81,24 +83,12 @@ export class AuthService {
                 sub : user?.id, // Ej: "uuid-del-usuario"
                 email : user?.email, // Ej: "correo@ejemplo.com"
                 roleId : user?.role.id,  // Ej: "uuid-del-rol" , rol lo traemos porque usamos eager: true
-                roleName : user?.role.name as RoleName // Ej: "ADMINISTRATOR", "STUDENT"
+                roleName : user?.role.name as RoleName, // Ej: "ADMINISTRATOR", "STUDENT"
+                schoolId : user.school?.id 
             }
 
             return authUser;
-
-            // 5️⃣ Devolvemos al "controlador" los datos necesarios del usuario autenticado.
-            // 👉 Este objeto será recibido en el controlador cuando se llame a: 
-            //   const user = await this.auth.validate(...)
-            // 👉 Solo retornamos la información mínima necesaria (no la entidad completa)
-            // Puedes incluir solo los campos que tu aplicación requiera
-            /*return {
-                sub : user.id,          
-                email : user.email,     
-                roleId : user.role.id,  
-                roleName: user.role.name as UserRole
-            };*/
-
-            
+  
 
         } catch(error){
             // 🎯  Si el error es UnauthorizedException (401) lo volvemos a lanzar sin modificarlo.
@@ -119,47 +109,59 @@ export class AuthService {
 
 
     // ✅ Método: signToken - Firmar Token
-    // Se encarga de generar un Token JWT a partir de los datos del usuario.
-    // Este token luego se devuelve al frontend para que pueda acceder a rutas protegidas.
-    // Recibe como parámetro un objeto con 3 propiedades:
-    // sub [Subject]  -> El (id) identificador del usuario en la BD.
-    // email -> Su correo electrónico.
-    // roleId -> El ID del rol
+    // 🔹 Se encarga de generar un Token JWT a partir de los datos del usuario.
+    // 🔹 Este token luego se devuelve al frontend para que pueda acceder a rutas protegidas.
+    //
+    // 🔹 Recibe como parámetro un objeto con las propiedades necesarias para identificar al usuario y aplicar reglas de 
+    //    autorización dentro del sistema.
+
+    // 🔹 sub [Subject]  -> Identificador único del usuario
+    // 🔹 email          -> Correo electrónico
+    // 🔹 roleId         -> ID del rol
+    // 🔹 roleName       -> Nombre del rol (SYSTEM_ADMINISTRATOR , ADMINISTRATOR, PARENT, GUARDIAN, STUDENT)
+    // 🔹 schoolId       -> Colegio al que pertenece el usuario (opcional). Los SYSTEM_ADMINISTRATOR no pertenecen a ningún colegio
     async signToken (
-        user : {
-            sub: string; 
-            email : string; 
-            roleId : string;
-            roleName : string;
-            // actions : []
-        })
-        {
+        user: JwtPayload
+    ){
 
         try{
             // 1️⃣ Creamos el payload, es decir, la información que irá dentro del token.
             // 🔹 "sub" es una claim estándar en JWT que significa "subject" (sujeto del token)
-            // Una claim es una declaración (o afirmación) que el token hace sobre el usuario o el contexto.
-            // Cuando un servidor genera un token JWT, en su interior hay un payload (carga útil) que contiene un conjunto de claims.
-            // Cada claim es como una pequeña frase que dice:
-            // "Este token pertenece a tal usuario, con tal rol, y fue emitido en tal fecha"
-            // 🔹 Añadimos el email y el rolId para poder usar esa información luego si es necesario.
-            const payload = {
+            // 🧠 Una claim es una declaración o afirmación que el token hace sobre el usuario o el contexto de autenticación.
+            // 👉 Cuando un servidor genera un JWT, en su interior hay un payload (carga útil) que contiene un conjunto de claims.
+            // 👉 Cada claim es una pequeña afirmació como:
+            // "Este token pertenece a este usuario, con este rol, y fue emitido en tal fecha"
+            // 🔹 Incluimos información útil para identificar al usuario y aplicar autorizaciones dentro de la aplicación
+            // 🔹 schoolId solo se agrega cuando existe. Esto evita enviar "schoolId: undefined" para usuarios SYSTEM_ADMINISTRATOR
+            const payload : JwtPayload = {
                 sub : user.sub, 
                 email : user.email, 
                 roleId : user.roleId,
-                roleName : user.roleName};
+                roleName : user.roleName,
+                // 🔹 "&"  -> Evalúa la expresión de izquierda a derecha
+                // 👉 Si user.schoolId tiene valor (ej: "abc-123"), el resultados será: { schoolId: "abc-123" } 
+                // 👉 Si user.schoolId es undefined, null, "", etc., el resultado será false y no se agregará nada
+                //
+                // 🔹 "..." (spread operator)
+                // 👉 Inserta las propiedades del objeto dentro de payload
+                //
+                // 🔹 Patrón: ...(condición && { propiedad: valor})
+                // Permite agregar propiedades de forma condicional
+                ...(user.schoolId && { schoolId : user.schoolId })
+            };
             
             // 2️⃣ Usamos el JwtService (inyectado en el constructor) para firmar el token JWT.
             // Este servicio forma parte del paquete @nestjs/jwt y facilita todo el proceso de generación y 
             // validación de tokens de forma segura.
 
             // 🔐 Internamente, JwtService realiza todo el proceso de creación del token JWT:
+
             // 🔹 Genera el HEADER (encabezado):
             // - Define el tipo de token (type : "JWT").
             // - Especifica el algoritmo de firma (alg: "HS256" por defecto, o el que definas en JwtModule).
             //
             // 🔹 Codifica el PAYLOAD (carga útil):
-            // - Contiene las claims o afirmaciones del usuario (por ejemplo: sub, email, roleId).
+            // - Contiene las claims o afirmaciones del usuario (por ejemplo: sub, email, roleId, roleName, schoolId).
             // - Incluye automáticamente campos estándar como:
             //.  - iat -> fecha de emisión del token (issued at).
             //.  - exp -> fecha de expiración, según el valor de JWT_EXPIRES.
@@ -170,17 +172,16 @@ export class AuthService {
             // - Si alguien altera el contenido, la firma deja de coincidir.
             //
             // 🔸 El resultado final es un token compuesto por tres partes codificadas en Base64:
-            // HEADER.PAYLOAD.SIGNATURE -> Completamente listo para enviar al cliente. 
+            // HEADER.PAYLOAD.SIGNATURE -> Token completamente listo para enviarse al cliente. 
             return await this.jwt.signAsync(payload);
 
         }catch(error){
-            // 🎯 Si algo falla al firmar el token -> error genérico 500
-            throw new InternalServerErrorException('Error al generar el token JWT'); 
-            
+            // 🎯 Si algo falla durante la firmar del JWT, devolvemos un error interno del servidor
+            throw new InternalServerErrorException(
+                'Error al generar el token JWT'
+            );   
         } 
     }
-
-
 
 
 

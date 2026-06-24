@@ -38,5 +38,8 @@ export interface UserSummary{
     // 🏷️ Nombre del rol (sirve para decidir pantallas en Android/Jetpack compose)
     //roleName : string;
     roleName : RoleName;
+    // 🏫 Colegio al que pertenece el usuario. Los SYSTEM ADMINISTRATOR no pertenecen a ningún colegio
+    schoolId?: string;
+    // 📋 Menú permitido para el usuario
     menu : MenuOption[];
 }
