@@ -7,7 +7,7 @@
 // 🔹 HttpException -> Clase base para lanzar errores HTTP personalizados.
 // 🔹 HttpStatus -> Enum con los códigos de estado HTTP (200, 400, 401, 500, etc).
 // 🔹 Post -> Decorador para manejar solicitudes HTTP POST.
-import { Body, Controller, ForbiddenException, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
 // 🔹 Importamos el servicio de autenticación donde está la lógica de negocio (validar credenciales, firmar JWT, etc.).   
 import { AuthService } from './auth.service';
 // 🔹 Importamos el DTO que define y valida la forma del body esperado para /login.
@@ -115,26 +115,42 @@ export class AuthController {
         @Req() req : AuthRequest    
     ){
 
-        // 📌 En este punto ya sabemos:
-        // ✅ El token JWT es validado
-        // ✅ El usuario está autenticado
-        // ✅ El usuario tiene rol ADMINISTRATOR
-        // ✅ req.user contiene los datos devueltos por JwtStratagy
- 
-        // 🏫 Obtenemos el identificador del colegio asociado al administrador autenticado
-        // 👉 Este valor proviene del payload JWT
-        const schoolId = req.user.schoolId;
+        // 📌 En este punto:
+        // ✅ El JWT ya fue validado
+        // ✅ req.user contiene el payload del token
+        // ✅ Ya sabemos qué rol tiene el usuario autenticado
+        let schoolId : string;
         
-        // 🛡️ Validación de seguridad
-        // 👉 Todo administrador debe pertenecer a un colegio
-        // 👉 Si no existe schoolId, no es posible asociar correctamente los nuevos registros
-        if(!schoolId){
-            throw new ForbiddenException(
-                'El usuario no pertenece a ningún colegio'
-            );
+        // =====================================
+        // 👑 SYSTEM_ADMINISTRATOR
+        // =====================================
+        // 👉 No pertenece a ningún colegio
+        // 👉 Debe indicar en el body el colegio al que pertenecerá el nuevo usuario que está registrando
+        if(req.user.roleName === RoleName.SYSTEM_ADMINISTRATOR){
+            if(!dto.schoolId){
+                throw new BadRequestException(
+                    'Debe indicar el colegio (schoolId).'
+                );
+            }
+            schoolId = dto.schoolId;
+        } 
+
+        // =====================================
+        // 🏫 ADMINISTRATOR
+        // =====================================
+        // 👉 Siempre registra usuarios dentro de su propio colegio
+        // 👉 El schoolId se obtiene del JWT
+        else{
+            if(!req.user.schoolId){
+                throw new ForbiddenException(
+                    'El administrador no pertenece a ningún colegio'
+                );
+            }
+
+            schoolId = req.user.schoolId;
         }
 
-
+        // 🚀 Registramos el usuario
         const user = await this.auth.register(
             dto,
             schoolId
