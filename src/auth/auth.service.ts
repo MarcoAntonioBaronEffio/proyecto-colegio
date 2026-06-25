@@ -685,7 +685,7 @@ export class AuthService {
 
             // 🔹 En palabras simples: "Primero guardo el usuario base en users"
             // 🧠 Todavía no estamos creando student ni administrator.
-            // Solo el registro general del usuario
+            // Solo el registro general del usuario.
             const savedUser = await this.users.create(    
                 // 📦 Le pasamos el DTO limpio
                 // ✅ Aqui solo viajan los campos que pertenecen a User
