@@ -194,7 +194,7 @@ export class AuthService {
     // 🔹 dto : RegisterDto -> trae todo lo del CreateUserDto (email, firstName, lastName, password, phone, avatarUrl, roleId) 
     async register(
         dto: RegisterDto,
-        schoolId : string
+        schoolId? : string
     ) { // ✅ Función async: devuelve una Promise y usamos await dentro
         try{ // 🛡️ try: capturamos errores para responder con excepciones claras (400/409/500)
 
@@ -585,32 +585,45 @@ export class AuthService {
 
             /* -------------------------------------------------------------------------------------------- */
 
-            // 📌 FALTA DOCUMENAR
-
-            const rolesWithSchool = [
+            // 🏫 Conjunto de roles que obligatoriamente deben pertenecer a un colegio
+            // 👉 Si el rol que se está registrando pertenece a este conjunto, será necesario buscar y asociar a una entidad School
+            //
+            // 👑 El SYSTEM_ADMINISTRATOR no se incluye porque administra todo el sistema y no pertenece a ningún colegio
+            const rolesWithSchool = new Set<RoleName>([
                 RoleName.ADMINISTRATOR,
                 RoleName.TEACHER,
                 RoleName.STUDENT,
                 RoleName.GUARDIAN,
-            ];
+            ]);
 
+            // 🏫 Variable donde almacenaremos la entidad School encontrada
+            // 👉 Inicialmente es null porque todavía no hemos buscado ningún colegio
             let school : School | null = null;
 
-            if(rolesWithSchool.includes(role.name as RoleName)){
+            // 🏫 Verificamos si el rol que se está registrando requiere pertenecer obligatoriamente a un colegio
+            if(rolesWithSchool.has(role.name as RoleName)){
 
-
+                // 🔎 Buscamos el colegio utilizando el schoolId recibido.
+                // 👉 El origen de schoolId depende de quién realiza el registro:
+                //
+                // 🔹 SYSTEM_ADMINISTRATOR -> El schoolId proviene del DTO, ya que puede registrar administradores para cualquier colegio.
+                // 🔹 ADMNISTRATOR -> El schoolId proviene del JWT, ya que solo puede registrar usuarios dentro de su propio colegio.
                 school = await manager.getRepository(School).findOne({
                     where :{
                         id : schoolId
                     }
                 });
 
+                // 🛡️ Verificamos que el colegio exista en la base de datos.
+                // 👉 Evitamos crear usuarios asociados a un colegio inexistente
                 if(!school){
                     throw new NotFoundException(
                         'El colegio no existe'
                     );
                 }
 
+                // ✅ Reemplazamos el valor recibido por el ID obtenido desde la entidad
+                // 👉 A partir de este punto sabemos que el schoolId corresponde a un colegio válido
                 schoolId = school.id
             }
 
@@ -678,7 +691,7 @@ export class AuthService {
                 // ✅ Aqui solo viajan los campos que pertenecen a User
                 createUserDto,  
                 role.id,
-                school?.id ?? null,
+                school?.id,
                 // 🔁 También le pasamos el manager de la transacción actual
                 // 🧠 Esto es importantísimo:
                 // asi users.create (...) trabajará DENTRO de la misma transacción

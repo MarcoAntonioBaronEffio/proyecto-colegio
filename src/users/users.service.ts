@@ -38,7 +38,7 @@ export class UsersService {
     async create (
         dto : CreateUserDto, // 📦 DTO limpio (solo datos de User)
         roleId : string,
-        schoolId, 
+        schoolId?: string, 
         manager?: EntityManager, // 🔄 Manager opcional (para transacciones)
     ) : Promise<User>{ // ↩️ Retorna el usuario creado (sin passwordHash)  
 

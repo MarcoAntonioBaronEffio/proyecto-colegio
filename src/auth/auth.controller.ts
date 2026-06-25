@@ -103,8 +103,9 @@ export class AuthController {
         RoleName.ADMINISTRATOR)
     @Post('register') // 🚀 Definimos la ruta POST /auth/register
     @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, la respuesta HTTP será 201 Created
-    // 🧩 Método encargado de registrar nuevos usuarios dentro del colegio del administrador autenticado
-    // 👉 El colegio se obtiene automáticamente desde el JWT
+    // 🧩 Método encargado de registrar nuevos usuarios.
+    // 👉 Si quién registra es un ADMINISTRATOR, el colegio se obtiene automáticamente desde el JWT.
+    // 👉 Si quién registra es un SYSTEM_ADMINISTRATOR, el colegio puede venir desde el DTO o no existir, dependiendo del tipo de usuario que se esté creando.
     async register(
         // 📥 Obtiene el body de la petición HTTP
         // 👉 NestJS transforma automáticamente el JSON recibido en una instancia de RegisterDto
@@ -119,24 +120,61 @@ export class AuthController {
         // ✅ El JWT ya fue validado
         // ✅ req.user contiene el payload del token
         // ✅ Ya sabemos qué rol tiene el usuario autenticado
-        let schoolId : string;
+
+        // 🏫 Variable que almacenará el colegio al que pertenecerá el nuevo usuario
+        // 👉 Su origen depende del rol del usuario autenticado
+        let schoolId : string | undefined;
         
         // =====================================
-        // 👑 SYSTEM_ADMINISTRATOR
+        // 👑 Si el usuario autenticado es SYSTEM_ADMINISTRATOR
         // =====================================
-        // 👉 No pertenece a ningún colegio
-        // 👉 Debe indicar en el body el colegio al que pertenecerá el nuevo usuario que está registrando
+        // 👉 El System Administrator NO pertenece a ningún colegio, por lo tanto su JWT nunca contiene schoolId
+        
+        // 👉 El comportamiento depende del tipo de usuario que va a crear:
+        // 🔹 Si SYSTEM_ADMINISTRATOR crea un ADMINISTRATOR: el schoolId debe enviarse en el DTO 
+        // 🔹 Si SYSTEM_ADMINISTRATOR crea otro SYSTEM_ADMINISTRATOR, no existe schoolId porque ese usuario tampoco pertenece a ningún colegio
+        
+        
+        /* DTO DE SYSTEM_ADMINISTRATOR PARA CREAR UN ADMINISTRADOR  |   DTO DE SYSTEM_ADMINISTRATOR PARA CREAR OTRO SYSTEM ADMINISTRATOR       
+            {                                                               {   
+                "email" : "admin3@test.com",                                    "email" : "admin3@test.com",
+                "password" : "12345678",                                        "password" : "12345678",
+                "firstName" : "Ana",                                            "firstName" : "Ana",
+                "lastName" : "Effio",                                           "lastName" : "Effio",
+                "roleName": "ADMINISTRATOR",                                    "roleName" : "SYSTEM_ADMINISTRATOR",
+                "schoolId" : "c5fd365c-a158-4e33-a734-cbf30781dbc9",            "systemAdministrator" :{  
+                "administrator" :{                                              "documentType" : "DNI",
+                    "documentType" : "DNI",                                     "documentNumber" : "17654322"   
+                    "documentNumber" : "17654322"                            }
+                }
+            }
+        */
         if(req.user.roleName === RoleName.SYSTEM_ADMINISTRATOR){
-            if(!dto.schoolId){
-                throw new BadRequestException(
-                    'Debe indicar el colegio (schoolId).'
+            // 👑 Si crea otro SYSTEM_ADMINISTRATOR, no pertenece a ningún colegio
+            if(dto.roleName === RoleName.SYSTEM_ADMINISTRATOR){
+                // ✅ Los System Administrator nunca pertenecen a un colegio
+                schoolId = undefined;
+            }
+
+            // 🏫 Si crea un ADMINISTRATOR, debe indicar el colegio
+            else if(dto.roleName === RoleName.ADMINISTRATOR){
+                if(!dto.schoolId){
+                    throw new BadRequestException(
+                        'Debe indicar el colegio (schoolId).'
+                    );
+                }
+                schoolId = dto.schoolId
+            }else{
+                throw new ForbiddenException(
+                    'Rol no permitido'
                 );
             }
-            schoolId = dto.schoolId;
+            
+             
         } 
 
         // =====================================
-        // 🏫 ADMINISTRATOR
+        // 🏫 Si el usuario autenticado es ADMINISTRATOR
         // =====================================
         // 👉 Siempre registra usuarios dentro de su propio colegio
         // 👉 El schoolId se obtiene del JWT
