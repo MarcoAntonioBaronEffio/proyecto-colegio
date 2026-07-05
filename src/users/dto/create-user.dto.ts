@@ -123,13 +123,5 @@ export class CreateUserDto{
     avatarUrl?: string; // 🖼️ Url opcional del avatar
 
 
-    //schoolId?: string;
-
-    // ✅ roleId también es opcional
-    // ✅ Si no viene, no se validan los decoradores de abajo
-    // @IsOptional()
-    // Valida que sea un UUID versión 4. Cambia '4' si usas otra versión.
-    // @IsUUID('4', {message: 'roleId debe ser un UUID v4 válido'})
-    // roleId? : string;
 
 }

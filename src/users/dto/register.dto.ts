@@ -117,6 +117,7 @@ export class RegisterDto extends CreateUserDto {
     @ValidateNested()
     guardian?: GuardianDto;
 
+    // 📌 FALTA COMENTAR
     @IsOptional()
     @IsUUID('4',{
         message: 'schoolId debe ser un UUID válido'
