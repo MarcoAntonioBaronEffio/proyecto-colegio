@@ -216,8 +216,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt'){
     async validate (payload : JwtPayload) {
 
         // 🔥 Todo lo que retornes aquí será asignado automáticamente a request.user por Passport.
-        // 🔹 Como nuestro payload ya contiene exactamente los datos que queremos tener disponibles durante la petición, 
-        //    simplemente lo retornamos completo.
+        // 🔹 Como nuestro payload ya contiene exactamente los datos que queremos tener disponibles durante la petición, simplemente lo retornamos completo.
         // 
         // 👉 Resultado:
         /*

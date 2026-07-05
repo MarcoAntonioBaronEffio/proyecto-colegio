@@ -26,16 +26,16 @@ export enum InstitutionType{
 
 // 🎓 Niveles educativos ofrecidos
 export enum LevelsOffered{
-    // 👶 Inicial
+    // 👶 Solo Inicial
     INITIAL = 'INITIAL', 
-    // 🧒  Primaria
+    // 🧒 Solo Primaria
     PRIMARY = 'PRIMARY', 
-    // 🧑‍🎓 Secundaria
+    // 🧑‍🎓 Solo Secundaria
     SECONDARY = 'SECONDARY', 
      // 🧩 Primaria + Secundaria
-    BOTH = 'BOTH',
+    PRIMARY_SECONDARY = 'PRIMARY_SECONDARY',
     // 🌎 Inicial + Primaria + Secundaria
-    ALL = 'ALL' 
+    INITIAL_PRIMARY_SECONDARY = 'INITIAL_PRIMARY_SECONDARY' 
 }
 
 // 🏫 Esta entidad representa a un colegio / institución educativa
@@ -163,7 +163,7 @@ export class School {
         name: 'levels_offered',
         type:'enum', // 🧩 Enum en PostgreSQL
         enum: LevelsOffered, // 🧩 Valores permitidos
-        default: LevelsOffered.BOTH, // ✅ Default común (Primaria + Secundaria)
+        default: LevelsOffered.PRIMARY_SECONDARY, // ✅ Default común (Primaria + Secundaria)
     })
     levelsOffered!: LevelsOffered;  
 
