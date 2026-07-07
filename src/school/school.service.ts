@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { School } from 'src/entities/school.entity';
+import { School, SchoolStatus } from 'src/entities/school.entity';
 import { QueryFailedError, Repository } from 'typeorm';
 import { CreateSchoolDto } from './dto/create-school.dto';
 
@@ -95,6 +95,16 @@ export class SchoolService {
                 ...dto,
             });
 
+            // 💳 CONFIGURACIÓN INICIAL DEL SAAS
+
+            // 🎁 Todo colegio nuevo inicia en periodo de prueba
+            school.status = SchoolStatus.TRIAL;
+
+            // 📅 Calculamos automáticamente la fecha de vencimiento
+            // 👉 El periodo de prueba dura 3 meses desde la fecha de registro
+            school.subscriptionExpiresAt = this.calculateTrialExpirationDate();
+
+
             // 💾 GUARDAR EN BASE DE DATOS
             
             // 💾 Guardamos el colegio en la base de datos
@@ -133,11 +143,20 @@ export class SchoolService {
             throw new InternalServerErrorException(
                 'Error inesperado al crear el colegio'
             )
-
         }
+    }
 
-        
+    // 🎁 Calcula la fecha de vencimiento del periodo de prueba
+    // 👉 Todo colegio nuevo recibe automáticamente 3 meses de acceso
+    // 👉 Centralizar esta lógica facilita modificar el periodo de prueba en el futuro
+    private calculateTrialExpirationDate() : Date {
 
+        // 📅 Tomamos la fecha y hora actual
+        const expiresAt = new Date();
+        // ✚ Agregamos 3 meses al periodo de prueba
+        expiresAt.setMonth(expiresAt.getMonth() + 3);
+        // 📥 Devolvemos la fecha calculada
+        return expiresAt;
     }
 
     // 📋 Obtener todos los colegios
