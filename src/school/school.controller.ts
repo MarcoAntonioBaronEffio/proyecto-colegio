@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { SchoolService } from './school.service';
 import { RoleName } from 'src/entities/users.entity';
 import { CreateSchoolDto } from './dto/create-school.dto';
@@ -7,59 +7,88 @@ import { School } from 'src/entities/school.entity';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 
-// 🏫 @Controller('schools') -> Prefijo de ruta del controlador
-// 🔹 Todas las rutas aqui comenzarán con /schools
-// 🔹 Ejemplos: POST /schools | GET /schools
+// 🏫 Controlador encargado de gestionar los colegios del sistema
+// 👉 Todas las rutas definidas aquí comenzarán con /schools
+// 👉 Ejemplo: 🔹 POST /schools | 🔹 GET /schools | 🔹 GET /schools/:id
+
+// 🔐 Todo este controlador solo puede ser utilizado por usuarios con el rol SYSTEM_ADMINISTRATOR
 @Roles(RoleName.SYSTEM_ADMINISTRATOR)
 @Controller('schools')
 export class SchoolController {
 
-    // 🧩 Inyección de dependencias
-    // 🔹 Nest crea una instancia de SchoolService y la inyecta en el constructor.
-    // 🔹 "private readonly service" guarda la referencia como propiedad inmutable.
+    // 🏗️ Inyectamos SchoolService
+    // 👉 El controlador delega toda la lógica de negocio al servicio
     constructor(private readonly service : SchoolService){}
 
-    // 🏫1️⃣ Crear colegio (Solo System Administrator)
-    // 🔹 Endpoint: POST http://localhost:3000/api/schools
-    // 🔹 Seguridad
-    
+    // 🏫 Crear un nuevo colegio
+    // 📍 Endpoint: POST /schools
+    // 📤 Devuelve el colegio recién registrado
     @Post()
-    // 📦 Extraemos el cuerpo de la petición y lo validamos según el DTO
+    // 📥 Recibe la información enviada por el cliente
+    // 👉 NestJS valida automáticamente el DTO antes de ejecutar este método
     async create(
         @Body() dto: CreateSchoolDto
     ) : Promise<ApiResponse<School>>{
 
-        // 🚀 Llamamos al servicio para crear el nuevo colegio
+        // 🚀 Delegamos la creación del colegio al servicio
         const created = await this.service.create(dto);
 
-        // 📨 Retornamos una respuesta uniforme con formato ApiResponse
+        // 📨 Devolvemos una respuesta utilizando el formato estándar ApiResponse
         return{
-            // ✅ Indica que la operación fue exitosa
+            // ✅ La operación se realizó correctamente
             success: true,
-            // 🗒️ Mensaje informativo
+            // 💬 Mensaje descriptivo para el cliente
             message: 'Colegio creado correctamente ✅',
-            // 📦 Colegio recién creado
+            // 📦 Colegio recién registrado
             data : created
         }
     }
 
 
-    // 📚2️⃣ Listar todos los colegios
-    // 📋 Endpoint: GET http://localhost:3000/api/schools
-    // 🔹 Devuelve todos los colegios registrados en la plataforma
-    // 🔹 Ideal para mostrarlos en el panel de System Administrator
+    // 📋 Obtener todos los colegios
+    // 📍 Endpoint: GET /schools
+    // 📤 Devuelve la lista completa de colegios registrados
     @Get()
     async findAll() : Promise<ApiResponse<School[]>>{
 
-        // 🔎 Llamamos al servicio para traer todos los colegios
+        // 🚀 Solicitamos al servicio todos los colegios registrados
         const schools = await this.service.findAll();
         
-        // 📨 Devolvemos la lista con el formato ApiResponse
+        // 📨 Devolvemos la respuesta utilizando el formato estándar ApiResponse
         return{
+            // ✅ La operación se realizó correctamente
             success: true,
+            // 💬 Mensaje descriptivo para el cliente
             message: 'Listado de colegios obtenido correctamente',
+            // 📦 Lista de colegios
             data: schools,
         };
+    }
+
+
+    // 🔍 Obtener un colegio por su identificador
+    // 📍 Endpoint: GET /schools:/:id
+    // 📥 Devuelve el colegio solicitado
+    @Get(':id')
+    async findOne(
+        // 📥 Identificador único (UUID) del colegio
+        @Param('id') id: string,
+    ) : Promise<ApiResponse<School>>{
+
+        // 🚀 Solicitamos al servicio buscar el colegio
+        const school = await this.service.findOne(id);
+
+        // 📨 Devolvemos la respuesta utilizando el formato estándar ApiResponse
+        return{
+            // ✅ La operación se realizó correctamente
+            success : true,
+            // 💬 Mensaje descriptivo para el cliente
+            message: 'Colegio obtenido correctamente',
+            // 📦 Colegio encontrado
+            data: school,
+        }
+
+
     }
 
 }

@@ -4,25 +4,31 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { School } from 'src/entities/school.entity';
 import { SchoolService } from './school.service';
 
+
+// 🧩 Decorador que marca esta clase como un módulo de NestJS.
+// 👉 Aquí se configura qué controladores, servicios, repositorios y otros módulos formarán parte de este módulo
 @Module({
-    // 📦 imports: módulos o integraciones que este módulo necesita
-    // 🔹 TypeOrmModule.forFeature([School])
-    // 👉 Registra el repositorio de la entidad School para poder inyectarlo mediante @InjectRepository(School) dentro de SchoolService
+
+    // 📦 Módulos que este módulo necesita para funcionar
     imports: [
+
+        // 🏫 Registramos el repositorio de la entidad School
+        // 👉 Esto permite inyectar Repository<School> mediante @InjectRepository(School) dentro de los providers de este módulo
+        //   (por ejemplo, SchoolService)
         TypeOrmModule.forFeature([School]),
     ],
 
-    // 🚪 controllers: clases que reciben las peticiones HTTP
-    // 👉 Aquí vive la capa web
-    // 👉 Se encarga de recibir DTOs, validar datos de entrada, llamar al servicio y devolver la respuesta al cliente
+    // 🌐 Controladores que exponen los endpoints HTTP
+    // 👉 Reciben las solicitudes del cliente, validan los DTO, llaman a los servicios y devuelven la respuesta
     controllers: [SchoolController],
 
-    // 🔧 providers: clases inyectables administradas por NestJS
-    // 👉 SchoolService contiene la lógica de negocio: Crear colegios, listar colegios, buscar colegios, actualizar colegios, eliminar colegios
+    // 🔧 Providers: clases administradas por el sistema de inyección de dependencias de NestJS
+    // 👉 Aquí registramos SchoolService para que NestJS pueda crear una instancia e inyectarla donde sea necesaria
+    // 👉 En este módulo, SchoolController utilizará SchoolService para ejecutar la lógica de negocio
     providers: [SchoolService],
 
-    // 🔁 exports : elementos que este módulo pone a disposición de otros módulos que lo importen
-    // 👉 Exportamos SchoolService para que otros módulos puedan inyectarlo si necesitan consultar información de colegios
+    // 🔁 Elementos que este módulo comparte con otros módulos
+    // 👉 Cualquier módulo que importe SchoolModule podrá inyectar SchoolService
     exports: [SchoolService],
 })
 

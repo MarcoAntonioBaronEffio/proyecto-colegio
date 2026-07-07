@@ -4,40 +4,52 @@ import { School } from 'src/entities/school.entity';
 import { QueryFailedError, Repository } from 'typeorm';
 import { CreateSchoolDto } from './dto/create-school.dto';
 
-// 🧩 Declaramos el servicio y lo hacemos inyectable en NestJS
+// 🧩 Declaramos el servicio de School
+// 👉 Aqui se implementa toda la lógica de negocio relacionada con los colegios
+// 👉 También se realizan validaciones y operaciones sobre la base de datos
 @Injectable()
 export class SchoolService {
 
+    // 🏗️ Inyectamos el repositorio de la entidad School
+    // 👉 El repositorio es el encargado de comunicarse con la base de datos
+    // 👉 Permite realizar operaciones CRUD (Crear, Consultar, Actualizar y Eliminar) sobre la tabla schools mediante TypeORM
     constructor(
+
+        // 🏫 Inyectamos el repositorio correspondiente a la entidad School
         @InjectRepository(School)
+
+        // 🎁 Repositorio tipado de TypeORM
+        // 👉 Lo utilizaremos en todos los métodos del servicio para interactuar con la tabla schools
         private readonly repo: Repository<School>
     ){}
 
-    // 🏫 Método para crear un colegio nuevo
-    // 📥 Devuelve el colegio recién creado
+    // 🏫 Crear un nuevo colegio
+    // 📥 Recibe la información validada desde CreateSchoolDto
+    // 📤 Devuelve el colegio recién registrado
     async create(
         dto: CreateSchoolDto,
     ) : Promise<School>{
 
         try{
 
-            // 1️⃣ VALIDAR CÓDIGO DUPLICADO
+            // 🔍 VALIDAR CÓDIGO ÚNICO
 
             // 🔍 Verificamos si ya existe un colegio con el mismo código
+            // 👉 El código identifica de forma única a cada institución
             const existingByCode = await this.repo.findOne({
             where:{
                     code : dto.code
                 }
             });
 
-            // 🚫 No permitimos códigos repetidos
+            // 🚫 No permitimos registrar códigos repetidos
             if(existingByCode){
                 throw new ConflictException(
                     `Ya existe un colegio con el código ${dto.code}`
                 );
             }
 
-            // 2️⃣ VALIDAR NOMBRE DUPLICADO
+            // 🔍 VALIDAR NOMBRE ÚNICO
             // 🔍 Verificamos si ya existe un colegio con el mismo nombre
             const existingByName = await this.repo.findOne({
                 where: {
@@ -45,7 +57,7 @@ export class SchoolService {
                 },
             });
 
-            // 🚫 No permitimos nombres repetidos
+            // 🚫 Evitamos registrar dos colegios con el mismo nombre
             if(existingByName){
                 throw new ConflictException(
                     `Ya existe un colegio llamado ${dto.name}`,
@@ -54,8 +66,8 @@ export class SchoolService {
 
             // 3️⃣ VALIDAR RUC DUPLICADO
 
-            // 🔍 Solo validamos si el usuario envió RUC
-            // 🔹 Realizamos esta condición porque el RUC es opcional
+            // 🔍 Solo registramos esta validación si el cliente envió un RUC
+            // 👉 El RUC es un dato opcional
             if(dto.ruc){
                 const existingByRuc = await this.repo.findOne({
                     where:{
@@ -63,29 +75,42 @@ export class SchoolService {
                     },
                 });
 
-                // 🚫 El RUC debe ser único
+                // 🚫 El RUC debe permanecer únicamente a un colegio
                 if(existingByRuc){
-                    throw new ConflictException(
+                    throw new ConflictException( 
                         `El RUC ${dto.ruc} ya está registrado`,
                     );
                 }
             }
 
-            // 4️⃣ CREAR ENTIDAD
+            // 🏗️ CREAR ENTIDAD
 
-            // 🏗️ Creamos una nueva instancia de School
+            // 🏗️ Creamos una nueva instancia de la entidad School
+            // 👉 create() solo construye el objeto en memoria
+            // 👉 Todavía NO inserta ningún registro en la base de datos
             const school = this.repo.create({
+                // 📦 Copiamos todas las propiedades del DTO dentro de esta instancia
+                // 🔹 Equivale a: name: dto.name, code: dto.code, ...
+                // 👉 Esto inicializa la entidad con los datos enviados por el cliente
                 ...dto,
             });
 
-            // 5️⃣ GUARDAR EN BASE DE DATOS
+            // 💾 GUARDAR EN BASE DE DATOS
             
-            // 💾 Persistimos el registro
-            return await this.repo.save(school);
+            // 💾 Guardamos el colegio en la base de datos
+            // 👉 save() ejecuta el INSERT si la entidad es nueva
+            // 👉 Si la entidad ya existiera (con un id válido), realizaría un UPDATE
+            return await this.repo.save(
+                // 🏫 Colegio creado previamente con los datos del DTO
+                // 👉 Será almacenado como un nuevo registro en la tabla schools  
+                school
+            );
 
         }catch(error){
 
-            // 6️⃣ ERRORES CONTROLADOS
+            // ⚠️ ERRORES DE NEGOCIO
+
+            // 👉 Son excepciones que nosotros mismos lanzamos durante las validaciones anteriores
             if(
                 error instanceof ConflictException ||
                 error instanceof BadRequestException
@@ -93,15 +118,18 @@ export class SchoolService {
                 throw error;
             }
 
-            // 7️⃣ ERRORES DE BASE DE DATOS
+            // 🗄️ ERRORES DE BASE DE DATOS
 
+            // 👉 Capturamos errores provenientes de PostgreSQL y TypeORM
             if(error instanceof QueryFailedError){
                 throw new BadRequestException(
                     'Error de base de datos al crear el colegio',
                 );
             }
 
-            // 8️⃣ ERRORES INESPERADOS
+            // 💥  ERRORES INESPERADOS
+
+            // 👉 Cualquier error no contemplado llegará aquí
             throw new InternalServerErrorException(
                 'Error inesperado al crear el colegio'
             )
@@ -112,36 +140,41 @@ export class SchoolService {
 
     }
 
-    // 📋 Método para obtener todos los colegios
+    // 📋 Obtener todos los colegios
+    // 📤 Devuelve una lista con todos los colegios registrados
     async findAll() : Promise<School[]>{
 
         try{
 
-            // 1️⃣ OBTENER COLEGIOS
+            // 🔍 OBTENER COLEGIOS
             
-            // 🔍 Buscamos todos los colegios registrados
+            // 🔍 Recuperamos todos los colegios registrados
+            // 👉 Se ordenan por fecha de creación descendente, de modo que los más recientes aparezcan primero
             const schools = await this.repo.find({
                 order: {
                     createdAt: 'DESC',
                 },
             });
 
-            // 2️⃣ DEVOLVER RESULTADOS
+            // 📤 DEVOLVER RESULTADO
 
-            // ✅ Si no existen registros TypeORM devolverá []
+            // ✅ Si no existen colegios registrados, TypeORM devolverá un arreglo vacío []
             return schools;
 
         }catch(error){
 
-            // 3️⃣ ERRORES DE BASE DE DATOS
+            // 🗄️ ERRORES DE BASE DE DATOS
 
+            // 👉 Capturamos errores provenientes de PostgresSQL o TypeORM
             if(error instanceof QueryFailedError){
                 throw new BadRequestException(
                     'Error de base de datos al obtener los colegios',
                 );
             }
 
-            // 4️⃣ ERRORES INESPERADOS
+            // 💥 ERRORES INESPERADOS
+            
+            // 👉 Cualquier error no contemplado llegará aquí
             throw new InternalServerErrorException(
                 'Error inesperado al obtener los colegios',
             );
@@ -151,47 +184,67 @@ export class SchoolService {
     }
 
 
-    // 🔍 Método para obtener un colegio por id
+    // 🔍 Obtener un colegio por su identificador
+    // 📥 Recibe el UUID del colegio
+    // 📤 Devuelve el colegio encontrado
     async findOne(
+        // 🆔 Identificador único (UUID) del colegio a buscar
         id : string,
     ): Promise<School>{
 
 
         try{
 
-            // 1️⃣ BUSCAR COLEGIO
+            // 🔍 BUSCAR COLEGIO
+
+            // 🔍 Buscamos un colegio cuyo id coincida con el recibido
+            // 👉 findOne() devuelve: 
+            // 🔹 Una instancia de School si existe
+            // 🔹 null si no encuentra ningún registro
             const school = await this.repo.findOne({
+                // 🔍 Condición de búsqueda
                 where: {
+                    // 🆔 Filtramos por el identificador único del colegio
                     id, 
                 },
             });
 
-            // 🚫 Si no existe lanzamos excepción
+            // ✅ VALIDAR EXISTENCIA
+
+            // 🚫 Si no encontró ningún colegio, detenemos la ejecución
+            // 👉 Si el colegio no existe, responderemos con un error 404 (Not Found)
             if(!school){
                 throw new NotFoundException(
                     `No existe el colegio con id ${id}`,
                 );
             }
 
-            // 2️⃣ DEVOLVER RESULTADO
+            // 📤 DEVOLVER RESULTADO
+
+            // ✅ Retornamos el colegio encontrado
             return school;
 
         }catch(error){
 
-            // 3️⃣ ERRORES CONTROLADOS
+            // ⚠️ ERRORES DE NEGOCIO
 
+            // 👉 Reenviamos las excepciones generadas por nuestras validaciones
             if(error instanceof NotFoundException){
                 throw error;
             }
 
-            // 4️⃣ ERRORES DE BASE DE DATOS
+            // 🗄️ ERRORES DE BASE DE DATOS
+
+            // 👉 Capturamos errores provenientes de PostgreSQL o TypeORM
             if( error instanceof QueryFailedError){
                 throw new BadRequestException(
                     'Error de base de datos al obtener el colegio',
                 );
             }
 
-            // 5️⃣ ERRORES INESPERADOS
+            // 💥 ERRORES INESPERADOS
+
+            // 👉 Cualquier excepción no contemplada termina aquí
             throw new InternalServerErrorException(
                 'Error inesperado al obtener el colegio',
             );
