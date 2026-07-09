@@ -29,7 +29,7 @@ POST -> https://proyecto-colegio-production.up.railway.app/api/schools
     "success": true,
     "message": "Colegio creado correctamente ✅",
     "data": {
-        "id": "0674ee7d-ec7d-430d-a745-22b9a0a56773",
+        "id": "694443d4-9830-40c9-9ab2-0cd40e7b0b06",
         "name": "Institución Educativa San Joaquín",
         "code": "SAN-JOAQUIN",
         "ruc": "20123456789",
@@ -44,10 +44,10 @@ POST -> https://proyecto-colegio-production.up.railway.app/api/schools
         "district": "Tumán",
         "institutionType": "PRIVATE",
         "levelsOffered": "PRIMARY_SECONDARY",
-        "subscriptionExpiresAt": "2026-10-07T03:27:19.350Z",
+        "subscriptionExpiresAt": "2026-10-07T03:40:41.081Z",
         "status": "TRIAL",
         "foundationDate": "2005-03-01",
-        "createdAt": "2026-07-07T03:27:19.351Z",
-        "updatedAt": "2026-07-07T03:27:19.351Z"
+        "createdAt": "2026-07-07T03:40:41.083Z",
+        "updatedAt": "2026-07-07T03:40:41.083Z"
     }
 }

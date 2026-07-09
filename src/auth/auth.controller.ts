@@ -38,35 +38,37 @@ export class AuthController {
 
 
     @Public()
-    // 🔹 Decorador @Post('login'):
-    // Define la ruta HTTP POST /auth/login para este método.
+    // 🌐 Endpoint público de autenticación
+    // 👉 Permite que un usuario inicie sesión sin necesidad de un JWT
     @Post('login')
     @HttpCode(200)
-    // 🔹 Método asíncrono que maneja el login.
-    // - @Body() dto -> extrae el body del request ( JSON plano ) y gracias a ValidationPipe con transform: true, lo convierte en una instancia de LoginDto y aplica 
-    //   validaciones.
-    // - Promise<LoginResponse> : tipamos explícitamente lo que devolvemos.
-    // ⭐️ Qué nos permite dto: LoginDto
-    //1️⃣ Recibir el body del request (JSON plano)
-    //2️⃣ Se convierte en una instancia real de LoginDto
-    //3️⃣ Se ejecutan @Transform
-    //4️⃣ Se ejecutan validaciones
-    //5️⃣ Solo si todo es válido, el método login se ejecuta
-    async login (@Body() dto: LoginDto) : Promise<LoginResponse>{
+    // 🔐 Procesa la autenticación del usuario
+    async login (
+        // 👉 @Body() extrae el cuerpo de la petición (JSON)
+        // 👉 Gracias a ValidationPipe con transform: true: 
+        // 🔹 El JSON se convierte en una instancia de LoginDto
+        // 🔹 Se ejecutan los decoradores @Transform
+        // 🔹 Se aplican todas las validaciones del DTO
+        // 👉 Solo si la información es válida, este método continúa su ejecución
+        @Body() dto: LoginDto
+        
+        // 📦 Devuelve un LoginResponse con:
+        // 🔹 El JWT (accessToken)
+        // 🔹 La información básica del usuario autenticado
+    ) : Promise<LoginResponse>{
        
-        // 1️⃣ ✅ Validamos credenciales
-        // Llamamos al servicio para verificar email + password.
-        // - Si las credenciales son inválidas, lo normal es que 'validate' lance una excepción(por ejemplo UnauthorizedException)
-        // - Si son válidas, devuelve el usuario (sin passwordHash si lo configuraste con select:false)
-        // 🔹 dto.email => dato limpio, validado y tipado del email
-        // 🔹 dto.password => dato limpio, validado y tipado del password
+
+
+        // 🔐 Validamos las credenciales del usuario
+        // 👉 Verifica que el correo exista y que la contraseña sea correcta
+        // 👉 Si las credenciales son inválidas, lanza UnauthorizedException
+        // 👉 Si son válidas, devuelve un AuthUser con la información necesaria para generar posteriormente el JWT
         const user = await this.auth.validate(dto.email, dto.password);
 
-        // 2️⃣ 🔐 Firmamos un JWT con datos necesarios (payload)
-        // - Incluimos campos que usarás a menudo en el backend (sub, email, roleId)
-        // - No coloques aquí información sensible (nunca password, ni hashes)
-        // - AuthService.signToken internamente usa JwtService.signAsync() con JWT_SECRET y JWT_EXPIRES
-        // configurados en tu JwtModule.
+        // 🔑 Generamos el JWT
+        // 👉 El payload contiene únicamente la información que el backend necesitará para identificar y autorizar al usuario en
+        //   futuras peticiones
+        // 👉 Nunca deben incluirse datos sensibles como contraseñas o hashes
         const accessToken = await this.auth.signToken({
             sub: user.sub,
             email : user.email,
@@ -75,21 +77,23 @@ export class AuthController {
             schoolId: user.schoolId
         });
 
+        // 📋 Obtenemos el menú correspondiente al rol del usuario
+        // 👉 El frontend utilizará esta información para construir la navegación según los permisos del usuario autenticado
         const menu = this.menuService.getMenuByRole(user.roleName);
 
-        // 3️⃣ 📦 Devolvemos una respuesta que cumple la interfaz LoginResponse
-        // - acess_token: el JWT (string).
-        // - user: datos básicos del usuario logueado (útiles en el cliente).
-        // Evita exponer más de lo necesario.
+        // 📤 Devolvemos la respuesta del login
+        // 👉 Incluye el JWT para autenticar futuras peticiones
+        // 👉 También enviamos información básica del usuario para inicializar el estado de la aplicación cliente
         return{
-            accessToken, // 🔐 token de usuario , Lo usarás en Authorization : Bearer<token>
-            user:{        // 👤 Conveniente para poblar el estado del frontend
-                id : user.sub, // uuid del usuario
-                email: user.email, // email
-                roleId: user.roleId, // rol de usuario
-                roleName: user.roleName, // nombre del rol
-                schoolId : user.schoolId, // colegio del usuario
-                menu
+            accessToken, // 🔐 Token JWT de autenticación
+
+            user:{         
+                id : user.sub,  // 🆔 Identificador único del usuario
+                email: user.email,  // 📧 Correo electrónico
+                roleId: user.roleId,   // 🆔 Identificador del rol
+                roleName: user.roleName,  // 👤 Nombre del rol 
+                schoolId : user.schoolId,   // 🏫 Colegio al que pertenece (si aplica)
+                menu // 📋 Menú disponible según el rol
             },
         };
     }

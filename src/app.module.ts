@@ -25,8 +25,6 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
 import { CourseService } from './course/course.service';
 import { SystemAdministrator } from './entities/system_administrator.entity';
 
-
-
 @Module({
   //imports: aquí definimos qué módulos externos va a usar tu aplicación NestJS en la raíz.
   imports: [ 

@@ -82,31 +82,104 @@ async function bootstrap() {
     allowedHeaders : ['Content-Type' , 'Authorization'],
   });
 
-  // 🧱 Activamos las validaciones globales (DTOs con class-validator)
+  // 🧱 Registramos un ValidationPipe global
+  // 👉 Se aplicará automáticamente a todos los controladores y endpoints
   app.useGlobalPipes(
     new ValidationPipe({ 
-      // 🔹 whitelist -> Solo deja pasar las propiedades que existen en tu DTO y que además tienen decoradores de validación
-      // Si envías algo extra (por ejemplo "rol": "ADMIN") cuando no existe en el DTO), se eliminará automáticamente.
-      // Si tenemos en nuestro dto solamente : email : String sin decorador, esto se eliminará también 😮.
-      // ⭐️ Elimina cualquier propiedad que no exista en tu DTO y que no tenga decorador de validación.
-      whitelist: true, // ❌ Elimina las propiedades que NO tienen decoradores de validación en el DTO
-      // 🔹 forbidNonWhitelisted -> Si alguien envía un campo no permitido, lanza un error 400 en lugar
-      // de simplemente ignorarlo.
-      // ⭐️ Hace lo mismo que "whitelist", pero además lanza un error 400 si alguien manda una propiedad
-      //no permitida.
-      // ⭐️ forbidNonWhitelisted necesita que "whitelist" esté activado. Si no activas "whitelist", 
-      //forbidNonWhitelisted no hace nada.
+
+      // 🔄 Convierte automáticamente el JSON recibido a una instancia de la clase DTO correspondiente
+      // 👉 Esto permite que class-transformer ejecute decoradores como @Transform(), @Type(), entre otros
+      /* 🔥 Ejemplo, ❌ Sin transform:true : 
+          {
+            "email" : " MARCO@GMAIL.COM"
+          }
+      👉 Llega como un objeto plano: { "email": " MARCO@GMAIL.COM"} ⬅️ No existe un LoginDto real, por lo que @Transform() no se ejecuta
+    
+      🔥 Ejemplo, ✅ Con transform:true
+          {
+            "email" : " MARCO@GMAIL.COM"
+          }
+      👉 Primero se crea una instancia de:
+
+      class LoginDto{
+          @Transform(({ value })) => value.trim().toLowerCase())
+          email!: string
+      }
+    
+      👉 Y el resultado será:
+      LoginDto{
+          email: "marco@gmail.com"
+      }
+      
+                                             transform: true
+      🔹 Es decir: JSON recibido ➡️ ValidationPipe   ➡️   Instancia de LoginDto ➡️ Se ejecuta @Transform(), @Type() ➡️ Se ejecutan las validaciones de class-validator
+      */
+      // ⚠️ transform: true no convierte automáticamente los tipos primitivos (por ejemplo : "35" -> 35)
+      // 🔹 Para ello puedes utilizar: 
+      // @Type(() => Number) | enableImplicitConversion: true
+      // 💡 enableImplicitConversion suele ser más útil en Query Params, ya que estos siempre llegan como cadenas de texto
+      //.   Ejemplo: GET /students?page=1&limit=20 ⬅️ Aqui si usarías enableImplicitConvertion, porque en los Query Params todos los valores llegan como texto
+      transform: true,  
+
+
+
+
+     
+      // 🛡️ Conserva únicamente las propiedades que tienen decoradores de class-validator dentro del DTO
+      // 👉 Las propiedades adicionales enviadas por el cliente se eliminan
+      // 👉 Si una propiedad existe en el DTO pero no tiene ningún decorador de validación, también será eliminada
+
+      // 🔥 whitelist realmente hace dos cosas:
+      // 🔹 Elimina propiedades que no existen en el DTO
+      // 🔹 Elimina propiedades que existen en el DTO pero que no tienen decoradores de class-validator
+
+      // ⭐️ Ejemplo:
+      /* export class LoginDto{
+         @IsEmail()
+         email!: string;
+         password!: string
+      }  
+      
+      👉 Y el cliente envía: { "email" : "marcobe@gmail.com", "password": "123456" }
+      🔹 Después de ValidationPipe con whitelist: true, quedará: { email : "marco@gmail.com"}
+      🧠 ¿Por qué desapareció password? -> Porque no tenía ningún decorador de validación (@IsString(), @IsNotEmpty(), etc)
+
+      // ⭐️ Ejemplo 2:
+      
+      export class LoginDto{
+        @IsEmail()
+        email!: string;
+        @IsString()
+        password!: string;
+      }
+
+      👉 El cliente envía: { "email": "marco@gmail.com", "password": "123456", "role": "ADMIN" }
+      🔹 Con whitelist : true, quedaría: { "email": "marco@gmail.com", "password" : "123456" }
+      🧠 role desaparece porque no existe en el DTO*/
+      whitelist: true,
+
+
+      // 🚫 Impide que el cliente envíe propiedades no definidas en el DTO
+      // 👉 Si detecta alguna, la petición se rechaza con un error HTTP 400 (Bad Request)
+      // 👉 Sin esta opción, whitelist simplemente eliminaría esas propiedades y la petición continuaría
+      // 👉 Requiere que whitelist esté habilitado
       forbidNonWhitelisted : true, // ❌ Lanza error si mandas propiedades extra
       
-      // 1️⃣ Convierte el body en una instancia del DTO: Antes : JSON plano -> Después : Objeto tipado con métodos, transforms, metadata
-      // 2️⃣ Activa class-transformer, esto permite usar @Transform , @Type, @Expose. Sin transfor: true -> no se ejecutan
-      // ⚠️ Nota: transform NO convierte tipos automáticamente. Para que "age" : "35" -> age: number se necesita: 
-      //    - @Type(() => Number) o
-      //    - enableImplicitConversion : true
-      // 👉 enableImplicitConversion: true NO es necesario si tú controlas en frontend y envias tipos correctos (login/register.)
-      // ✅ Útil sobre todo en Query Params (paginación/filtros), porque ahí todo llega como string (?page=1&limit=10).
-      // ⭐️ Ejemplo: JSON -> RegisterDto -> StudentDto
-      transform: true,  
+
+      // ⭐️ Flujo interno del ValidationPipe es aproxidamente este
+      // 1️⃣ Llega el JSON de la petición
+      // 2️⃣ transform: true
+      //    🔹 Convierte el JSON en una instancia del DTO
+      //    🔹 Se ejecutan los decoradores de class-transformer ( @Transform, @Type, etc )
+      // 3️⃣ class-validator
+      //    🔹 Ejecuta @IsEmail, @IsString, @MinLength, etc
+      // 4️⃣ whitelist
+      //    🔹 Elimina las propiedades no permitidas
+      // 5️⃣ forbidNonWhitelisted
+      //    🔹 Si encontró propiedades extra, lanza un HTTP 400 en lugar de continuar
+      // 6️⃣ Se ejecuta el controlador
+      
+
     })
   )
 
@@ -127,8 +200,8 @@ async function bootstrap() {
   //await app.listen(port);
   await app.listen(port, '0.0.0.0');
 
-  console.log('🚀 PORT:', port);
-  console.log('🚀 ENV PORT:', process.env.PORT)
+  //console.log('🚀 PORT:', port);
+  //console.log('🚀 ENV PORT:', process.env.PORT)
 }
 
 // 🔹 Llama a la función boostrap(), para que la aplicación NestJS arranque 🚀.
