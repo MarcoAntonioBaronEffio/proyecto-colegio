@@ -122,11 +122,14 @@ export class AuthService {
     // 🔹 roleName       -> Nombre del rol (SYSTEM_ADMINISTRATOR , ADMINISTRATOR, PARENT, GUARDIAN, STUDENT)
     // 🔹 schoolId       -> Colegio al que pertenece el usuario (opcional). Los SYSTEM_ADMINISTRATOR no pertenecen a ningún colegio
     async signToken (
+        // 📦 Información que se almacenará dentro del JWT
         user: JwtPayload
-    ){
+    ) 
+    // 🔑 Devuelve una promesa que contendrá el JWT generado como texto
+    : Promise<string>{
 
         try{
-            // 1️⃣ Creamos el payload, es decir, la información que irá dentro del token.
+            // 1️⃣ Construimos el payload, el payload es la información que se guardará dentro del JWT
             // 🔹 "sub" es una claim estándar en JWT que significa "subject" (sujeto del token)
             // 🧠 Una claim es una declaración o afirmación que el token hace sobre el usuario o el contexto de autenticación.
             // 👉 Cuando un servidor genera un JWT, en su interior hay un payload (carga útil) que contiene un conjunto de claims.
@@ -151,7 +154,8 @@ export class AuthService {
                 ...(user.schoolId && { schoolId : user.schoolId })
             };
             
-            // 2️⃣ Usamos el JwtService (inyectado en el constructor) para firmar el token JWT.
+            // 2️⃣ Firmamos el payload y generamos el JWT
+            // Usamos el JwtService (inyectado en el constructor) para firmar el token JWT.
             // Este servicio forma parte del paquete @nestjs/jwt y facilita todo el proceso de generación y 
             // validación de tokens de forma segura.
 
@@ -177,7 +181,7 @@ export class AuthService {
             return await this.jwt.signAsync(payload);
 
         }catch(error){
-            // 🎯 Si algo falla durante la firmar del JWT, devolvemos un error interno del servidor
+            // ❌ Si ocurre un problema al firmar el JWT, lanzamos un error interno del servidor
             throw new InternalServerErrorException(
                 'Error al generar el token JWT'
             );   

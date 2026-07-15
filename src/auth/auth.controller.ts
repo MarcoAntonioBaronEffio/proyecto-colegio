@@ -23,6 +23,8 @@ import { RoleName } from 'src/entities/users.entity';
 import { use } from 'passport';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import type { AuthRequest } from 'src/common/interfaces/auth-request-interface';
+import { AuthUser } from './interfaces/auth-user.interface';
+import { JwtPayload } from './types/jwt-payload-type';
 
 // 🔹 Prefijo del controlador: todas las rutas aquí dentro comienzan con /auth
 @Controller('auth')
@@ -63,13 +65,12 @@ export class AuthController {
         // 👉 Verifica que el correo exista y que la contraseña sea correcta
         // 👉 Si las credenciales son inválidas, lanza UnauthorizedException
         // 👉 Si son válidas, devuelve un AuthUser con la información necesaria para generar posteriormente el JWT
-        const user = await this.auth.validate(dto.email, dto.password);
+        const user : AuthUser = await this.auth.validate(dto.email, dto.password);
 
         // 🔑 Generamos el JWT
-        // 👉 El payload contiene únicamente la información que el backend necesitará para identificar y autorizar al usuario en
-        //   futuras peticiones
+        // 👉 El payload contiene únicamente la información que el backend necesitará para identificar y autorizar al usuario en futuras peticiones
         // 👉 Nunca deben incluirse datos sensibles como contraseñas o hashes
-        const accessToken = await this.auth.signToken({
+        const accessToken : string  = await this.auth.signToken({
             sub: user.sub,
             email : user.email,
             roleId: user.roleId,
