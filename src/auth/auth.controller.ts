@@ -103,10 +103,9 @@ export class AuthController {
     // ✅ Endpoint para registrar usuario:
     // 🔐 Solo los usuarios con rol SYSTEM_ADMINISTRATOR o ADMINISTRADOR pueden acceder a este endpoint
     // 👉 RolesGuard leerá este decorador y verificará que req.user.roleName coincida con alguno de los roles permitidos 
-    /*@Roles(
+    @Roles(
         RoleName.SYSTEM_ADMINISTRATOR,
-        RoleName.ADMINISTRATOR)*/
-    @Public()
+        RoleName.ADMINISTRATOR)
     @Post('register') // 🚀 Definimos la ruta POST /auth/register
     @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, la respuesta HTTP será 201 Created
     // 🧩 Método encargado de registrar nuevos usuarios.
