@@ -106,6 +106,7 @@ export class AuthController {
     /*@Roles(
         RoleName.SYSTEM_ADMINISTRATOR,
         RoleName.ADMINISTRATOR)*/
+    @Public()
     @Post('register') // 🚀 Definimos la ruta POST /auth/register
     @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, la respuesta HTTP será 201 Created
     // 🧩 Método encargado de registrar nuevos usuarios.
