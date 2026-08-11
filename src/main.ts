@@ -52,7 +52,7 @@ async function bootstrap() {
     // 🔍 Lee metadata @Roles()
 
     // 📌 Casos:
-    // 👉 Si NO hay @Roles() -> acceso libre
+    // 👉 Si NO hay @Roles() -> cualquier usuario autenticado puede continuar
     // 👉 Si SI hay @Roles():
     //  - Obtiene roles requeridos (ej: ['ADMINISTRATOR])
     //  - Lee request.user.roleName 
@@ -137,6 +137,7 @@ async function bootstrap() {
       /* export class LoginDto{
          @IsEmail()
          email!: string;
+
          password!: string
       }  
       
@@ -149,6 +150,8 @@ async function bootstrap() {
       export class LoginDto{
         @IsEmail()
         email!: string;
+
+        
         @IsString()
         password!: string;
       }
@@ -182,6 +185,10 @@ async function bootstrap() {
 
     })
   )
+
+  //git add .
+  //git commit -m "Actualización"
+  // git push origin main
 
   // 🔹 Esto establece un prefijo global.
   // Esto significa que todas las rutas de tus controladores comenzarán con /api.

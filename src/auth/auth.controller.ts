@@ -80,7 +80,7 @@ export class AuthController {
 
         // 📋 Obtenemos el menú correspondiente al rol del usuario
         // 👉 El frontend utilizará esta información para construir la navegación según los permisos del usuario autenticado
-        const menu = this.menuService.getMenuByRole(user.roleName);
+        //const menu = this.menuService.getMenuByRole(user.roleName);
 
         // 📤 Devolvemos la respuesta del login
         // 👉 Incluye el JWT para autenticar futuras peticiones
@@ -88,13 +88,13 @@ export class AuthController {
         return{
             accessToken, // 🔐 Token JWT de autenticación
 
-            user:{         
+            user: {         
                 id : user.sub,  // 🆔 Identificador único del usuario
                 email: user.email,  // 📧 Correo electrónico
                 roleId: user.roleId,   // 🆔 Identificador del rol
                 roleName: user.roleName,  // 👤 Nombre del rol 
                 schoolId : user.schoolId,   // 🏫 Colegio al que pertenece (si aplica)
-                menu // 📋 Menú disponible según el rol
+                //menu // 📋 Menú disponible según el rol
             },
         };
     }
@@ -103,9 +103,9 @@ export class AuthController {
     // ✅ Endpoint para registrar usuario:
     // 🔐 Solo los usuarios con rol SYSTEM_ADMINISTRATOR o ADMINISTRADOR pueden acceder a este endpoint
     // 👉 RolesGuard leerá este decorador y verificará que req.user.roleName coincida con alguno de los roles permitidos 
-    @Roles(
+    /*@Roles(
         RoleName.SYSTEM_ADMINISTRATOR,
-        RoleName.ADMINISTRATOR)
+        RoleName.ADMINISTRATOR)*/
     @Post('register') // 🚀 Definimos la ruta POST /auth/register
     @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, la respuesta HTTP será 201 Created
     // 🧩 Método encargado de registrar nuevos usuarios.

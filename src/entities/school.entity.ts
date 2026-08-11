@@ -220,7 +220,8 @@ export class School {
         enum : SchoolStatus,
         default: SchoolStatus.TRIAL
     })
-    status!: SchoolStatus;
+    status?: SchoolStatus;
+
 
     // ===============================================
     // 🏛️ FUNDACIÓN

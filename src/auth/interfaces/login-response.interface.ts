@@ -41,5 +41,5 @@ export interface UserSummary{
     // 🏫 Colegio al que pertenece el usuario. Los SYSTEM ADMINISTRATOR no pertenecen a ningún colegio
     schoolId?: string;
     // 📋 Menú permitido para el usuario
-    menu : MenuOption[];
+    //menu : MenuOption[];
 }

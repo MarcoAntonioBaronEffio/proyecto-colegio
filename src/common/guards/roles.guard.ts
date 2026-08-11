@@ -4,31 +4,39 @@
 // 👉 Injectable: permite que Nest gestione esta clase (inyección de dependencias)
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
 
+
 // 🧠 Reflector: herramienta para LEER METADATA de decorators como @Roles()
 // 👉 Es el "lector" de etiquetas que pusiste con SetMetadata
 import { Reflector } from "@nestjs/core";
 
 // 🧩 Marcamos la clase como injectable
-// 👉 Nest podrá crearla automáticamente e inyectar dependencias como "Reflactor"
+// 👉 Nest podrá crearla automáticamente e inyectar dependencias como "Reflector"
 @Injectable()
  
 // 🛡️ Creamos el RolesGuard
-// 👉 Implementa CanActivate -> OBLIGATORIO tener el método canActivate()
+// 👉 Implementa CanActivate -> por lo que obligatoriamente debe contener el método canActive()
 export class RolesGuard implements CanActivate {
 
+    // ⭐️ ¿LA RUTA EXIGE ALGÚN ROL ESPECIFICO?
+
     // 🧠 Inyectamos Reflector
-    // 👉 Lo usaremos para leer los roles requeridos del endpoint
+    // 👉 Lo utilizaremos para leer la metadata creada por el decorador @Roles()
     constructor(private reflector : Reflector){}
 
-    // 🚔 Método clave del guard
-    // 👉 Aqui decides si la request pasa (true) o se bloquea (false)
+    // 🚔 Método principal del guard
+    // 👉 Decide si la petición puede continuar
+    //
+    // ✅ true -> La petición continúa
+    // ❌ false -> NestJS responde con 403 Forbidden
     canActivate(context : ExecutionContext) : boolean{
  
-        // 🔍 Obtenemos los roles requeridos desde la metadata
-        // 👉 'roles' es la clave usada en @Roles(...)
-        // 👉 getAllAndOverride busca en:
-        // 1️⃣ El endpoint (handler)
-        // 2️⃣ El controller (class)
+        // 🔍 Intentamos obtener los roles requeridos desde la metadata creada por @Roles()
+        // 👉 'roles' es la clave utilizada para guardar y posteriormente recuperar esa metadata
+        // 👉 getAllAndOverride buscará en este orden: 
+        // 1️⃣ En el método o endpoint actual
+        // 2️⃣ En el controller completo
+        //
+        // 👉 Si encuentra roles en el endpoint, estos tendrán prioridad sobre los roles definidos es en controller
 
         // Por ejemplo si tenemos esto:
         /* 
@@ -36,7 +44,7 @@ export class RolesGuard implements CanActivate {
             @Get()
             findAll(){}
         
-        Entonces internamente NestJS guarda una metadata parecida a:
+        El decorador guarda internamente una metadata similar a: 
 
         {
             roles: [ADMINISTRATOR]
@@ -47,44 +55,66 @@ export class RolesGuard implements CanActivate {
         const requiredRoles = this.reflector.getAllAndOverride<string[]>(
             'roles', // 🔑 clave de metadata (ej: @Roles('ADMINISTRATOR'))
             [
-                context.getHandler(), // 🎯 método (ej: findAll
+                context.getHandler(), // 🎯 método (ej: findAll)
                 context.getClass(),   // 🏫 controller completo
             ]
         ); 
 
-        // 🟢 Si NO hay roles definidos...
-        // 👉 significa que el endpoint es libre (no necesita rol)
-        // 👉 dejamos pasar la request
-        if(!requiredRoles) return true;
+        // 🔴 Si no existen roles definidos mediante @Role()...
+        // 👉 La ruta no tiene una restricción adicional por rol
+        // 👉 Por lo tanto, RolesGuard permite continuar
+        //
+        // ⚠️ Esto no significa necesariamente que sea una ruta pública
+        // 👉 Si JwtAuthGuard está activo, todavía será necesario enviar un token JWT válido
+        if(!requiredRoles || requiredRoles.length === 0) return true;
  
-        // 🔴 Si SI hay role definidos -> debemos validar al usuario
- 
-        // 🌎 Obtenemos el request HTTP real
-        // 👉 Aqui viene todo: headers, body, user, etc
-        const request = context.switchToHttp().getRequest();
+        // 🟢 Si existen roles definidos
+        // 👉 Necesitamos obtener al usuario autenticado y verificar su rol
+        //  
+        // 🌎 Obtenemos la petición HTTP real 
+        // 👉 Contiene información como: headers, body, params, query y user
+        // 👤 request.user fue agregado anteriormente por Passport después de que JwtAuthGuard validara correctamente el token
+        const request  = context.switchToHttp().getRequest();
  
         // 👤 Obtenemos el usuario autenticado
-        // 👉 Este user viene del JwtStrategy
-        // 👉 Ya fue decodificado del token JWT
+        // 👉 request.user fue agregado previamente por Passport
+        // 👉 Contiene el valor retornado por JwtStrategy.validate()
+
 
         /* 
             🧠 Ejemplo de user:
             user = {
                 sub: "123",
                 email: "admin@test.com",
-                roleName: "ADMINISTRATOR"
+                roleName: "ADMINISTRATOR",
+                schoolId : 'abc1234'
             }
         */
+
+        // 👤 Obtenemos la información del usuario autenticado
+        // 👉 Esta línea NO valida el token ni verifica su firma
+        // 👉 La firma y la expiración fueron verificadas previamente por Passport mediante JwtAuthGuard y JwtStrategy
+        // 👉 Si el token fue válido, Passport ejecutó JwtStrategy.validate() y guardó su resultado dentro de request.user
+        // ⭐️ Importante, no podemos escribir directamente const user = request.user; si antes no has declarado u obtenido la
+        //    variable "request", porque TypeScript no sabría qué objeto representa "request". Primero debes extraer la petición
+        //    HTTP desde el ExecutionContext
         const user = request.user; 
 
-        // 🔐 Validamos si el rol del usuario está permitido
-        // 👉 requiredRoles : ['ADMINISTRATOR']
-        // 👉 user.roleName : "ADMINISTRATOR"
-        // 👉 includes -> true si coincide
+        // 🚨 Si por alguna razón no existe un usuario autenticado
+        // 👉 No permitimos el acceso
+        //
+        // 🔹 Normalmente esto no debería suceder si JwtAuthGuard se ejecutó correctamente antes que RolesGuard
+        if(!user){
+            return false;
+        }
 
-        // 🟢 Si coincide -> true - pasa
-        // 🔴 Si NO coincide -> false -> bloqueado automáticamente por Nest
 
+        // 🔐 Comprobamos si el rol del usuario se encuentra dentro de los roles permitidos para la ruta
+        // 🔥 Ejemplo:
+        // 🔹 requiredRoles: ['SYSTEM_ADMINISTRATOR', 'ADMINISTRATOR']
+        //
+        // 🔹 user.roleName : 'ADMINISTRATOR'
+        // 👉 includes() devolverá true porque el rol sí está permitido
         // ✅ true -> nest continúa hacia el controller
         // ❌ false -> nest lanza 403 forbidden
         return requiredRoles.includes(user.roleName);
@@ -94,7 +124,42 @@ export class RolesGuard implements CanActivate {
 }
 
  
+/*
 
+RolesGuard
+|-- Ruta sin @Roles()
+|   |--- Deja continuar al usuario que ya fue autenticado por JwtAuthGuard, sin importar su rol
+|
+|-- Ruta con @Roles()
+    |-- Deja continuar únicamente al usuario autenticado cuyo rol esté entre los permitidos
+
+🔥 Ejemplo: Ruta protegida sin rol específico
+
+    @Get('profile')
+    getProfile(){}
+
+🔹 Como no tiene @Public(), primero debe enviar un token válido. Como no tiene @Roles(), puede ingresar cualquier usuario autenticado:
+   ✅ SYSTEM_ADMINISTRATOR, ADMINSITRATOR, TEACHER, GUARDIAN, STUDENT
+
+
+🔥 Ejemplo: Ruta protegida con roles específicos
+    @Roles(
+        RoleName.ADMINSTRATOR,
+        RoleName.TEACHER
+    )
+    @Get('reports')
+    getReports(){}
+
+🔹 Primero se valida el token. Después, el RolesGuard solo permite entra a: ✅ ADMINISTRATOR, ✅ TEACHE, ❌ STUDENT, ❌ GUARDIAN
+
+✨ El RolesGuard deja continuar a cualquier usuario autenticado cuando la ruta no tiene @Roles(), y cuando sí tiene @Roles(), solamente
+deja continuar a los usuarios autenticados cuyo rol esté permitido.
+
+Solo recuerda que el RolesGuard no valida el token: recibe al usuario ya autenticado por el JwtAuthGuard y decide si existe alguna
+restricción adicional por rol
+   
+
+*/
 
 
 

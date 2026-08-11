@@ -141,6 +141,8 @@ import { JwtPayload } from "./types/jwt-payload-type";
 // ✅ Marcamos la clase como inyectable
 // 👉 NestJS podrá crear e inyectar automáticamente una instancia de esta estrategia dentro del sistema de autenticación
 @Injectable()
+
+// ⭐️ ¿LA RUTA ES PÚBLICA O NECESITA AUTENTICACIÓN?
  
 // ✅ Extendemos PassportStrategy utilizando la estrategia JWT
 // 👉 'jwt' es el nombre de la estrategia
@@ -212,8 +214,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt'){
         }
     */
 
-    // 👉 
+    // 🔍 Método ejecutado automáticamente por Passport
+    // 👉 Se ejecuta después que el token JWT fue extraído
     async validate (payload : JwtPayload) {
+
+        // 📦 payload contiene la información que fue guardada dentro del JWT cuando el token fue generado
+
+        // 🔹 JwtPayload es solamente el tipo de TypeScript 
+        // 👉 Le indica al editor qué propiedades esperamos encontrar dentro del payload 
 
         // 🔥 Todo lo que retornes aquí será asignado automáticamente a request.user por Passport.
         // 🔹 Como nuestro payload ya contiene exactamente los datos que queremos tener disponibles durante la petición, simplemente lo retornamos completo.
@@ -230,7 +238,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt'){
             }
 
             // 🏫 Nota: 
-            // 👉 schoolId puede ser undefined cuando el usuario es SYSTEM_ADMINISTRATOR, ya que no pertecene a ningún colegio.
+            // 👉 schoolId puede ser undefined cuando el usuario tiene el rol SYSTEM_ADMINISTRATOR, ya que no pertecene a ningún colegio.
          */
         return payload
  

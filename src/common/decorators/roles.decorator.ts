@@ -14,7 +14,7 @@ import { SetMetadata } from "@nestjs/common";
 
 // 🔥 Ejemplo:
 // @Roles('ADMIN', 'TEACHER'), asi mandes solo uno
-export const Roles = (...roles: string[]) =>  
+export const Roles = ( ...roles : string[] ) =>  
 
     // 🧠 SetMetadata (clave, valor)
     // 👉 clave: 'roles'
@@ -29,7 +29,7 @@ export const Roles = (...roles: string[]) =>
         @Get()
         findAll(){}
 
-        // 🔥 Internamente Nest guarda algo asi:
+        🔥 Internamente Nest guarda algo asi:
 
         {
             handler: findAll,

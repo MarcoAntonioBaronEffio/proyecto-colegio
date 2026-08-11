@@ -50,8 +50,8 @@ import { SetMetadata } from "@nestjs/common";
 export const Public = () => 
     
     // 🔥 SetMetadata(clave, valor)
-    // 👉 clave: nombre de la metadata
-    // 👉 valor: lo que quieres guardar
+    // 👉 clave: nombre de la metadata = 'isPublic'
+    // 👉 valor: lo que quieres guardar = true
     SetMetadata('isPublic', true);
 
 // 🧠 ¿Qué significa esto?
@@ -64,7 +64,6 @@ export const Public = () =>
         handler: login, 
         metadata: { isPublic: true }
     }
-
 */
 
 // 🧠 ¿Quién usa esa metadata?

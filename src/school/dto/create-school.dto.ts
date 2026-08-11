@@ -174,10 +174,8 @@ export class CreateSchoolDto{
     province?: string;
 
 
-
-
-
-
+    // Hola como estas 💰 sdssd
+ 
     // 🏘️ Distrito donde se ubica el colegio
     // 👉 Elimina espacios sobrantes
     @Transform(({value}) => value?.trim())
@@ -205,7 +203,7 @@ export class CreateSchoolDto{
         message: 'Tipo de institución no válido'})
     institutionType!: InstitutionType;
     
-    
+    // Hola ++
     
     
     // 🎓 Niveles educativos que ofrece el colegio

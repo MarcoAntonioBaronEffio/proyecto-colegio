@@ -1,7 +1,24 @@
 // ✅ Importamos ExecutionContext e Injectable desde NestJS
 // ⭐️ ExecutionContext -> representa el contexto de la request (request, handler, controller)
-// 🔹 En otras palabras es una caja que contiene TODO sobre la petición que está entrando
-// 📦 Imagínalo asi: Cuando llega una request: 
+// ⭐️ El contexto de ejecución es toda la información que NestJS conoce sobre la acción que está intentando ejecutar en ese momento
+// 🔹 Permite conocer información como:
+// 👉 El método del controller que se intentará ejecutar
+// 👉 El controller al que pertenece ese método
+// 👉 El tipo de ejecución: HTTP, WebSocket 
+// 👉 Los argumentos de la ejecución
+//
+// 🌎 Cuando trabajamos con HTTP, también nos permite acceder a la petición request y a la respuesta response
+// 📦 Podemos imaginarlo como una caja que contiene información sobre todo lo relacionado con la ejecución actual
+// 🔥 Ejemplo cuando llega una petición HTTP
+//
+// 🔹 ExecutionContext
+// |-- Controller actual
+// |-- Método o handler actual
+// |-- Tipo de contexto: HTTP
+// |-- Argumentos de la ejecución
+// |-- request
+// |-- response
+// |-- next
 
 // GET /school-year
 // Authorization: Bearer abc123
@@ -155,6 +172,7 @@ export class JwtAuthGuard extends AuthGuard('jwt'){
     canActivate(context : ExecutionContext){
  
         // 🌎1️⃣ Revisamos si el endpoint es público (@Public)
+        
         // 🧠 this.reflector:
         // 👉 Es el lector de la metadata
         // 👉 Sirve para saber si el endpoint tiene decoradores como @Public o @Roles
@@ -199,7 +217,9 @@ export class JwtAuthGuard extends AuthGuard('jwt'){
         // 👉 No se ejecuta JWT
         // 👉 No se valida token
         // 👉 Pasa directo al endpoint
-        if(isPublic) return true; 
+        if(isPublic){
+            return true;
+        }  
 
         // 🔐 Si NO es público -> ejecutamos validación JWT
         // 👉 Aquí entra en juego: 
