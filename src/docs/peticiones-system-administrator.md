@@ -6,7 +6,7 @@ POST -> https://proyecto-colegio-production.up.railway.app/api/auth/register
 ➡️ petición:
 
 {
-    "email": "systemadmin@admin.com",
+    "email": "systemadmin2@admin.com",
     "password": "12345678",
     "firstName": "Marco Antonio",
     "lastName" : "Barón Effio",
