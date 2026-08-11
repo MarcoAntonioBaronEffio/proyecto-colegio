@@ -131,6 +131,124 @@ export class AuthController {
         // 👉 Su origen depende del rol del usuario autenticado
         let schoolId : string | undefined;
         
+        // ✨ ============================================================
+// ✨ REGISTRO TEMPORAL DEL PRIMER SYSTEM_ADMINISTRATOR
+// ✨ ============================================================
+
+// ✨ Si no existe un usuario autenticado significa que estamos
+// ✨ entrando a /register sin enviar un JWT
+if (!req.user) {
+
+    // ✨ Solo permitiremos crear un SYSTEM_ADMINISTRATOR
+    // ✨ mientras estamos utilizando temporalmente @Public()
+    if (dto.roleName !== RoleName.SYSTEM_ADMINISTRATOR) {
+
+        throw new ForbiddenException(
+            'Solo se permite crear un SYSTEM_ADMINISTRATOR sin autenticación'
+        );
+    }
+
+    // ✨ Los SYSTEM_ADMINISTRATOR no pertenecen a ningún colegio
+    schoolId = undefined;
+}
+
+
+// =====================================
+// 👑 Usuario autenticado: SYSTEM_ADMINISTRATOR
+// =====================================
+
+// ✨ Aquí ya sabemos que req.user sí existe
+else if (req.user.roleName === RoleName.SYSTEM_ADMINISTRATOR) {
+
+    // 👑 Si crea otro SYSTEM_ADMINISTRATOR,
+    // 👉 este usuario tampoco pertenece a ningún colegio
+    if (dto.roleName === RoleName.SYSTEM_ADMINISTRATOR) {
+
+        schoolId = undefined;
+    }
+
+    // 🏫 Si crea un ADMINISTRATOR,
+    // 👉 debe indicar a qué colegio pertenecerá
+    else if (dto.roleName === RoleName.ADMINISTRATOR) {
+
+        if (!dto.schoolId) {
+            throw new BadRequestException(
+                'Debe indicar el colegio (schoolId).'
+            );
+        }
+
+        schoolId = dto.schoolId;
+    }
+
+    // 🚫 SYSTEM_ADMINISTRATOR no puede crear otros roles desde este flujo
+    else {
+        throw new ForbiddenException(
+            'Rol no permitido'
+        );
+    }
+}
+
+
+// =====================================
+// 🏫 Usuario autenticado: ADMINISTRATOR
+// =====================================
+
+else {
+
+    // 🏫 El administrador necesariamente debe pertenecer a un colegio
+    if (!req.user.schoolId) {
+        throw new ForbiddenException(
+            'El administrador no pertenece a ningún colegio'
+        );
+    }
+
+    // 🏫 Los usuarios creados por el administrador
+    // 👉 pertenecerán automáticamente a su mismo colegio
+    schoolId = req.user.schoolId;
+}
+        // 🚀 Registramos el usuario
+        const user = await this.auth.register(
+            dto,
+            schoolId
+        ); // ✅ Guardado (o rollback si falla)
+
+        const messages : Record<RoleName, string> = {
+            [RoleName.STUDENT] : 'Estudiante registrado con éxito',
+            [RoleName.ADMINISTRATOR] : 'Administrador registrado con éxito',
+            [RoleName.SYSTEM_ADMINISTRATOR] : 'System Administrator registrado con éxito',
+            [RoleName.GUARDIAN] : 'Apoderado registrado con éxito',
+            [RoleName.TEACHER] : 'Profesor registrado con éxito',
+        };
+
+        const message = messages[dto.roleName] ?? 'Usuario registrado con éxito'
+
+        // ↩️ Retornamos una respuesta personalizada
+        return{
+            success : true, // ✅ Indicamos que la operación fue exitosa
+            message, // 📨 Mensaje dinámico según el rol
+            data : user, // 📦 Datos del usuario creado
+        };
+    }
+
+    async register2(
+        // 📥 Obtiene el body de la petición HTTP
+        // 👉 NestJS transforma automáticamente el JSON recibido en una instancia de RegisterDto
+        @Body() dto : RegisterDto,
+        // 🔐 Obtiene un objeto Request de Express
+        // 👉 Gracias a JwtAuthGuard y JwtStrategy, aquí ya existe req.user
+        // 👉 req.user contiene el payload validado del JWT
+        @Req() req : AuthRequest    
+    ){
+
+        // 📌 En este punto:
+        // ✅ El JWT ya fue validado
+        // ✅ req.user contiene el payload del token
+        // ✅ Ya sabemos qué rol tiene el usuario autenticado
+
+        // 🏫 Variable que almacenará el colegio al que pertenecerá el nuevo usuario
+        // 👉 Su origen depende del rol del usuario autenticado
+        let schoolId : string | undefined;
+        
         // =====================================
         // 👑 Si el usuario autenticado es SYSTEM_ADMINISTRATOR
         // =====================================
