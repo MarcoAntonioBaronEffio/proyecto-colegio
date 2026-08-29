@@ -340,6 +340,10 @@ export class SchoolService {
             
         }catch(error){
 
+            // 🛑 Mostrar el error original únicamente en el servidr 
+            // 👉 Esto nos permitirá conocer exactamente qué problema está devolviendo PostgreSQL o TypeORM
+            console.error('ERROR AL OBTENER COLEGIOS', error);
+
             // 🗄️ Errores de base de datos
 
             // 👉 Verificamos si el error capturado pertenece a QueryFailedError
