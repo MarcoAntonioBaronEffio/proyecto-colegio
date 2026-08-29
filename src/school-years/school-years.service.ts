@@ -4,7 +4,6 @@ import {
     NotFoundException,  // ❌ Excepción para cuando no se encuentre un recurso (404)
     BadRequestException, // ⚠️ Excepción para solicitudes inválidas o no permitidas
     InternalServerErrorException,
-    BadGatewayException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm'; // 🧩 Permite a Nest inyectar un repositorio TypeOrm
 import { QueryFailedError, Repository } from 'typeorm'; // 🗃️ Clase genérica para acceder a métodos CRUD

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { School, SchoolStatus } from 'src/entities/school.entity';
 import { QueryFailedError, Repository } from 'typeorm';
 import { CreateSchoolDto } from './dto/create-school.dto';
+import { SchoolForAdministratorRegistrationResponse } from './response/school-for-administrator-registration.response';
 
 // 🧩 Declaramos el servicio de School
 // 👉 Aqui se implementa toda la lógica de negocio relacionada con los colegios
@@ -14,13 +15,23 @@ export class SchoolService {
     // 👉 El repositorio es el encargado de comunicarse con la base de datos
     // 👉 Permite realizar operaciones CRUD (Crear, Consultar, Actualizar y Eliminar) sobre la tabla schools mediante TypeORM
     constructor(
-
-        // 🏫 Inyectamos el repositorio correspondiente a la entidad School
+ 
+        // 🏫 @InjectRepository(School) (Busca e inyecta el repositorio asociado a la entidad School)
+        // 👉 Le indica a Nest qué repositorio debe buscar e inyectar
+        // 👉 En este caso, solicitamos el repositorio asociado a la entidad School
         @InjectRepository(School)
 
-        // 🎁 Repositorio tipado de TypeORM
-        // 👉 Lo utilizaremos en todos los métodos del servicio para interactuar con la tabla schools
+        // 🎁 Repository<School> (Recibe ese repositorio y lo guarda en "repo" para poder usarlo dentro del servicio)
+        // 👉 Representa el repositorio de TypeORM asociado a la entidad School
+        // 👉 Como School representa la tabla de colegios, este repositorio nos permitirá consultar, crear, actualizar o eliminar sus registros
         private readonly repo: Repository<School>
+
+        // 🔹 Un repositorio es el objeto que usamos para interactuar con los registros de una entidad en la base de datos
+        // 🔹 El repositorio funciona como una especie de intermediario entre nuestro servicio y la tabla
+        // 👉 En este caso : Repository<School> está asociado a la entidad School y y nos proporciona métodos ya preparados como:
+        // 🔹 repo.find(), repo.findOne(), repo.save(), repo.update(), repo.delete()
+        // 👉 Puedes verlo de esta forma: 
+        // ✅ Entidad School -> 🎁 Repository<School> -> 🗄️ Base de datos 
     ){}
 
     // 🏫 Crear un nuevo colegio
@@ -199,7 +210,6 @@ export class SchoolService {
             );
 
         }
-        
     }
 
 
@@ -268,5 +278,108 @@ export class SchoolService {
                 'Error inesperado al obtener el colegio',
             );
         }
+    }
+
+
+    // 📋 Obtener colegios para registrar un administrador
+    // 👉 Devuelve únicamente el ID y el nombre de cada colegio
+    // 👉 Esta información será utilizada para seleccionar el colegio al momento de registrar un nuevo administrador
+    async findSchoolForAdministratorRegistration()
+        : Promise<SchoolForAdministratorRegistrationResponse[]>{
+
+        try{
+
+            // 🔍 Obtener colegios
+
+            // 🔍 Recuperamos los colegios registrados 
+            // 👉 Solo queremos la información necesaria para seleccionar un colegio al registrar un administrador
+            const schools = await this.repo.find({
+
+                // 🔍 find
+                // 👉 Es un método de TypeORM que utilizamos para "buscar" y "obtener" registros de una tabla
+                // 👉 En este caso, buscamos los colegios registrados en la tabla correspondiente a School
+                // 📌 Dentro de find ({ ... }) podemos indicar opciones como:
+                // 🔹 select -> Qué campos queremos recuperar
+                // 🔹 order -> Cómo queremos ordenar los resultados
+
+                // 📦 Campos a recuperar
+
+                // 👉 No necesitamos recuperar toda la información del colegio
+                // 👉 Únicamente necesitamos:
+                // 
+                // 🆔 id -> Para identificar el colegio seleccionado
+                // 🏫 name -> Para mostrar su nombre en la interfaz
+                select: {
+                    id : true,
+                    name : true,
+                },
+                // 🔤 Ordenar colegios
+
+                // 👉 Ordenamos los colegios alfabéticamente por nombre
+                // 📌 ASC -> Desde A hasta Z
+                order : {
+                    name : 'ASC'
+                },
+            });
+
+            // 📥 Devolver resultado
+
+            // ✅ Devolvemos los colegios encontrados
+            // 👉 Cada colegio contendrá únicamente:
+            /* 
+                {
+                    id: "...",
+                    name: "..."
+                }
+            */
+
+           // 📌 El resultado coincide con la estructura definida en: 
+           // 👉 SchoolForAdministratorRegistrationResponse     
+           // 📌 Si no existen colegios registrados, TypeORM devolverá un arreglo vacío []
+           return schools;
+            
+        }catch(error){
+
+            // 🗄️ Errores de base de datos
+
+            // 👉 Verificamos si el error capturado pertenece a QueryFailedError
+            //
+            // 📌 QueryFailedError es una excepción de TypeORM que puede producirse cuando una consulta hacia PostgreSQL no 
+            //    puede ejecutarse correctamente.
+            //
+            // 🔥 Por ejemplo:
+            // ❌ Problemas con la estructura de la consulta
+            // ❌ Restricciones de la base de datos
+            // ❌ Errores relacionados con columnas, tablas o tipos de datos
+            if (error instanceof QueryFailedError){
+
+                // ⚠️ BadRequestException
+                // 👉 Lanzamos una excepción HTTP 400 hacia el cliente
+                // 📌 En lugar de enviar al cliente el mensaje técnico original generado por PostgreSQL o TypeORM, devolvemos un mensaje controlado y
+                //    definido por nosotros.
+                // 
+                // 🔥 Por ejemplo, PostgreSQL podría generar internamente errores como:
+                // ❌ "column does not exist"
+                // ❌ "relation does not exist"
+                // ❌ "duplicate key value violates unique constraint"
+                //
+                // 👉 Pero el cliente solamente recibirá nuestro mensaje: "Error de base de datos al obtener los colegios"
+                 throw new BadRequestException(
+                    'Error de base de datos al obtener los colegios',
+                );
+            }
+
+            // 💥 Errores inesperados
+
+            // 👉 Si el error NO fue un QueryFailedError significa que ocurrió algún problema diferente que no hemos contemplado específicamente.
+            // 📌 En ese caso lanzamos un error HTTP 500, indicando que ocurrió un problema interno en el servidor
+            throw new InternalServerErrorException(
+                'Error inesperado al obtener los colegios',
+            );
+
+
+        }
+
+
     }
 }

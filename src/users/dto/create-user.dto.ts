@@ -38,9 +38,6 @@ export class CreateUserDto{
     email! : string;
     
 
-
-
-
     // 📌 🔐 password -> Este campo recibirá la contraseña en texto plano (no el hash)
     // El hash se generará dentro del servicio usando bcrypt.
     // Asegura presencia (si viene '', null o undefined, falla)
@@ -87,10 +84,6 @@ export class CreateUserDto{
     // ✅ Máximo 80 caracteres, debe respetar la Entity
     @MaxLength(80, {message: 'El apellido no puede superar 80 caracteres'})
     lastName! : string
-
-
-    
-
 
     // ✅ Indica que este campo es opcional: si no viene, NO valida el resto de decoradores
     @IsOptional()

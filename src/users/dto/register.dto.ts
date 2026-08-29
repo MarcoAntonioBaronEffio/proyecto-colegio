@@ -30,9 +30,7 @@ export class RegisterDto extends CreateUserDto {
     @Transform(({value}) => 
     typeof value === 'string'? value.trim().toUpperCase() : value)
     @IsNotEmpty({message : 'Debes enviar roleName'})
-    @IsEnum(RoleName, {
-        message : 'roleName inválido.'
-    })
+    @IsEnum(RoleName, {message : 'roleName inválido.'})
     roleName!: RoleName;
     
     // ----------------------------------------------------------------------
@@ -117,11 +115,36 @@ export class RegisterDto extends CreateUserDto {
     @ValidateNested()
     guardian?: GuardianDto;
 
-    // 📌 FALTA COMENTAR
+    // 🏫 SCHOOL ID
+
+    // 👉 Representa el identificador único del colegio al que pertenecerá el usuario que estamos registrando
+    // 🔥 Ejemplo: schoolId = "550e8400-e29b-41d4-a716-446655440000"
+    // 📌 Este campo puede utilizarse para relacionar al usuario con un colegio específico dentro del sistema
+    // 👉 Por ejemplo: Usuario -> schoolId -> Colegio
+    // ⚠️ No todos los usuarios necesariamente necesitan un schooolId
+    // 🔥 Por ejemplo: 
+    // 👑 SYSTEM_ADMINISTRATOR 
+    // 👉 Puede existir sin pertenecer a ningún colegio
+    //
+    // 👨‍💼 ADMINISTRADOR , 🧑‍🏫 TEACHER, 🎓 STUDENT , 🧑‍🧑‍🧒‍🧒 GUARDIAN
+    // 👉 Normalmente estarán relacionados con un colegio
+    //
+    // 🟡 @IsOptional()
+    // 👉 Indica que schoolId NO es obligatorio dentro del DTO
+    //
+    // ✅ Si NO se envía: class-validator simplemente ignora las demás validaciones
+    // ✅ Si SI se envía : Entonces deberá cumplir con @IsUUID('4')
     @IsOptional()
+    // 🆔 @IsUUID('4') -> Valida que schoolId tenga el formato de un UUID versión 4 válido
+    // ✅ Ejemplo válido: "550e8400-e29b-41d4-a716-446655440000" 
+    // ❌ Ejemplos inválidos: "123", "colegio-1", "abc123"
+    // 📌 Si el valor enviando NO tiene un formato UUID v4 válido, NestJS devolverá el mensaje personalizado indicado abajo
     @IsUUID('4',{
         message: 'schoolId debe ser un UUID válido'
     })
+    // 🏫 schoolId?: string
+    // 👉 El signo ? significa que este campo puede no venir dentro del request
+    // 👉 Si viene, deberá ser un String y además cumplir con la validación UUID anterior 
     schoolId?: string
 
 

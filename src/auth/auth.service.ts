@@ -200,6 +200,8 @@ export class AuthService {
         dto: RegisterDto,
         schoolId? : string
     ) { // ✅ Función async: devuelve una Promise y usamos await dentro
+
+
         try{ // 🛡️ try: capturamos errores para responder con excepciones claras (400/409/500)
 
 
@@ -215,7 +217,7 @@ export class AuthService {
             // 👉 Todo lo que hagas con "manager" aqui adentro es parte de la misma transacción
  
             // ✅ Validación mínima
-            if(!dto.roleName){ // 🚫 Si el cliente NO envía roleName (ej: "STUDENT", "ADMINISTRATOR", etc.)
+            if(!dto.roleName){ // 🚫 Si el cliente NO envía roleName (ej: "SYSTEM_ADMINSTRATOR" , "TEACHER" , "GUARDIAN", "STUDENT", "ADMINISTRATOR", etc.)
                 throw new BadRequestException('Debes enviar el campo "roleName"'); // ❌ 400: petición mal formada
             }
 

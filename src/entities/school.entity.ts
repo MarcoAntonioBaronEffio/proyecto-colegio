@@ -26,8 +26,6 @@ export enum SchoolStatus{
     INACTIVE = 'INACTIVE'
 }
 
-
-
 // 🏛️ Tipo de institución educativa
 // 👉 Permite clasificar el tipo de colegio
 export enum InstitutionType{

@@ -3,7 +3,7 @@
 Petición:
 
 {
-    "email" : "systemadmin@admin.com",
+    "email" : "systemadmin2@admin.com",
     "password" : "12345678"
 }
 

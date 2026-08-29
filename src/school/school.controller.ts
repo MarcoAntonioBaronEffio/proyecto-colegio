@@ -6,6 +6,7 @@ import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 import { School } from 'src/entities/school.entity';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { SchoolForAdministratorRegistrationResponse } from './response/school-for-administrator-registration.response';
 
 // 🏫 Controlador encargado de gestionar los colegios del sistema
 // 👉 Todas las rutas definidas aquí comenzarán con /schools
@@ -88,6 +89,62 @@ export class SchoolController {
             data: school,
         }
 
+
+    }
+
+
+    // 📋 Obtener colegios para registrar un administrador
+    // 📍 Endpoint: GET /schools/administrator-registration
+    // 📥 Devuelve únicamente el ID y nombre de los colegios registrados
+    // 👉 Esta información será utilizada para seleccionar el colegio disponibles y permitir seleccionar uno al momento de registrar un nuevo administrador.
+    @Get('administrator-registration')
+    async findSchoolsForAdministratorRegistration() 
+        : Promise<ApiResponse<SchoolForAdministratorRegistrationResponse[]>>{
+
+        // 🚀 Solicitamos al servicio los colegios necesarios para registrar un administrador
+        // 👉 El servicio devolverá una lista de: SchoolForAdministratorRegistrationResponse
+        // 📌 Cada colegio contendrá únicamente:
+        //
+        // 🆔 id -> Indentificador único del colegio
+        // 🏫 name -> Nombre del colegio.
+        //
+        // 🔥 Por ejemplo:
+        /*
+            [
+        
+                {
+                    id: "550e8400-e29b-41d4-a716-446655440000",
+                    name : "I.E San Joaquín"          
+                },
+                {
+                    id: "660e8400-e29b-41d4-a716-446655440000",
+                    name : "I.E Betel"
+                }
+            ]
+        */
+        const schools = await this.service.findSchoolForAdministratorRegistration();
+
+        // 📨 Devolver respuesta
+        // 👉 Devolvemos la información utilizando nuestro formato estándar ApiResponse
+        return {
+
+            // ✅ success
+            // 👉 Indica que la operación terminó correctamente
+            success : true,
+
+            // 💬 message
+            // 👉 Mensaje descriptivo que podrá recibir el cliente
+            message : 'Colegios obtenidos correctamente',
+
+            // 📦 data
+            // 👉 Contiene la lista de colegios obtenida desde el servicio
+            // 📌 Cada elemento cumple con la estructura definida en: 
+            // 👉 SchoolForAdministratorRegistrationResponse
+            //
+            // 📌 Si no existen colegios registrador:
+            // 👉 dara contendrá un arreglo vacío [].
+            data : schools,
+        }
 
     }
 
