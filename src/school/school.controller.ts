@@ -67,32 +67,6 @@ export class SchoolController {
     }
 
 
-    // 🔍 Obtener un colegio por su identificador
-    // 📍 Endpoint: GET /schools:/:id
-    // 📥 Devuelve el colegio solicitado
-    @Get(':id')
-    async findOne(
-        // 📥 Identificador único (UUID) del colegio
-        @Param('id') id: string,
-    ) : Promise<ApiResponse<School>>{
-
-        // 🚀 Solicitamos al servicio buscar el colegio
-        const school = await this.service.findOne(id);
-
-        // 📨 Devolvemos la respuesta utilizando el formato estándar ApiResponse
-        return{
-            // ✅ La operación se realizó correctamente
-            success : true,
-            // 💬 Mensaje descriptivo para el cliente
-            message: 'Colegio obtenido correctamente',
-            // 📦 Colegio encontrado
-            data: school,
-        }
-
-
-    }
-
-
     // 📋 Obtener colegios para registrar un administrador
     // 📍 Endpoint: GET /schools/administrator-registration
     // 📥 Devuelve únicamente el ID y nombre de los colegios registrados
@@ -147,5 +121,31 @@ export class SchoolController {
         }
 
     }
+
+
+    // 🔍 Obtener un colegio por su identificador
+    // 📍 Endpoint: GET /schools:/:id
+    // 📥 Devuelve el colegio solicitado
+    @Get(':id')
+    async findOne(
+        // 📥 Identificador único (UUID) del colegio
+        @Param('id') id: string,
+    ) : Promise<ApiResponse<School>>{
+
+        // 🚀 Solicitamos al servicio buscar el colegio
+        const school = await this.service.findOne(id);
+
+        // 📨 Devolvemos la respuesta utilizando el formato estándar ApiResponse
+        return{
+            // ✅ La operación se realizó correctamente
+            success : true,
+            // 💬 Mensaje descriptivo para el cliente
+            message: 'Colegio obtenido correctamente',
+            // 📦 Colegio encontrado
+            data: school,
+        }
+    }
+
+
 
 }

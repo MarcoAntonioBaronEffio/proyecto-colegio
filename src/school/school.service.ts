@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Get, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { School, SchoolStatus } from 'src/entities/school.entity';
 import { QueryFailedError, Repository } from 'typeorm';
@@ -211,7 +211,6 @@ export class SchoolService {
 
         }
     }
-
 
     // 🔍 Obtener un colegio por su identificador
     // 📥 Recibe el UUID del colegio
