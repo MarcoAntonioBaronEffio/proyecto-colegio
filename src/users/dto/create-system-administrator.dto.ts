@@ -1,19 +1,32 @@
 import { Transform } from "class-transformer";
 import { IsEnum, IsNotEmpty, IsString, MaxLength } from "class-validator";
 import { DocumentType } from "src/common/enums/document-type.enum";
+import { CreateUserDto } from "./create-user.dto";
 
-export class SystemAdministratorDto{
+
+// ============================================================
+// 👑 CREATE SYSTEM ADMINISTRATOR DTO
+// ============================================================
+
+// 👑 Contiene todos los datos necesarios para registrar un SYSTEM_ADMINISTRATOR.
+//
+// 🧬 Hereda de CreateUserDto: 📧 email , 🔐 password , 👤 firstName , 👤 lastName , 📱 phone? , 🖼️ avatarUrl? 
+// ➕ Agrega: 📄 documentType y 🔢 documentNumber
+//
+// 🏫 IMPORTANTE:
+// 👉 SYSTEM_ADMINISTRATOR no pertenece a ningún colegio.
+// 👉 Por eso aquí NO existe schoolId.
+//
+// 🔐 Tampoco existe roleName.
+// 👉 El backend determinará que el rol es SYSTEM_ADMINISTRATOR.
+export class CreateSystemAdministratorDto extends CreateUserDto{
 
     // 📄 Tipo de documento de identidad
     // 👉 Campo obligatorio
     // 👉 Solo acepta valores definidos en el enum DocumentType
     // 🔹 Ejemplos válidos: DNI , PASSPORT , CE, PPT
-    @IsNotEmpty({
-        message: 'El tipo de documento es obligatorio'
-    })
-    @IsEnum(DocumentType,{
-        message: 'Tipo de documento no válido'
-    })
+    @IsNotEmpty({ message: 'El tipo de documento es obligatorio' })
+    @IsEnum(DocumentType,{ message: 'Tipo de documento no válido' })
     documentType!: DocumentType;
 
 
@@ -29,15 +42,9 @@ export class SystemAdministratorDto{
         ? value.trim()
         : value
     )
-    @IsNotEmpty({
-        message: 'El número de documento es obligatorio'
-    })
-    @IsString({
-        message: 'El número de documento debe ser texto'
-    })
-    @MaxLength(20, {
-        message: 'El número de documento no puede superar 20 caracteres'
-    })
+    @IsNotEmpty({ message: 'El número de documento es obligatorio' })
+    @IsString({ message: 'El número de documento debe ser texto' })
+    @MaxLength(20, { message: 'El número de documento no puede superar 20 caracteres' })
     documentNumber!: string;
 
 }

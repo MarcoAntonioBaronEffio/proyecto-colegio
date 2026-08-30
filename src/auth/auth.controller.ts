@@ -25,6 +25,8 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import type { AuthRequest } from 'src/common/interfaces/auth-request-interface';
 import { AuthUser } from './interfaces/auth-user.interface';
 import { JwtPayload } from './types/jwt-payload-type';
+import { CreateSystemAdministratorDto } from 'src/users/dto/create-system-administrator.dto';
+import { CreateAdministratorDto } from 'src/users/dto/create-administrator.dto';
 
 // 🔹 Prefijo del controlador: todas las rutas aquí dentro comienzan con /auth
 @Controller('auth')
@@ -100,45 +102,241 @@ export class AuthController {
     }
 
 
-    // ✅ Endpoint para registrar usuario:
-    // 🔐 Solo los usuarios con rol SYSTEM_ADMINISTRATOR o ADMINISTRADOR pueden acceder a este endpoint
-    // 👉 RolesGuard leerá este decorador y verificará que req.user.roleName coincida con alguno de los roles permitidos 
+    // ============================================================
+    // 👑 REGISTRAR SYSTEM ADMINISTRATOR
+    // ============================================================
+
+    // ✅ Endpoint encargado de registrar un nuevo SYSTEM_ADMINISTRATOR
+    //
+    // 🔐 Solamente puede acceder:
+    // 👑 SYSTEM_ADMINISTRATOR
+    //
+    // ⭐️ IMPORTANTE:
+    // 👉 El frontend NO envía roleName
+    // 👉 Esta ruta siempre registrará un SYSTEM_ADMINISTRATOR
+    // 👉 El propio servicio determina el rol
+    //
+    // 🏫 SYSTEM_ADMINISTRATOR:
+    // 👉 No pertenece a ningún colegio
+    // 👉 Por eso NO necesitamos schoolId
     @Roles(
         RoleName.SYSTEM_ADMINISTRATOR,
+    )
+    @Post('register/system-administrator')
+    @HttpCode(HttpStatus.CREATED)
+    async registerSystemAdministrator(
+
+        // 📥 Datos enviados desde el frontend
+        // 👉 Contiene: 📧 email, 🔐 password, 👤 firstName , 👤 lastName, 📱 phone?, 🖼️ avatarUrl?, 📄 documentType, 🔢 documentNumber
+        @Body() dto : CreateSystemAdministratorDto,
+    ){
+
+        // ============================================================
+        // 🚀 REGISTRAR SYSTEM ADMINISTRATOR
+        // ============================================================
+
+        // 👑 Llamamos directamente a la función específica
+        // 👉 Ya NO utilizamos un register() genérico
+        // 👉 Tampoco necesitamos enviar RoleName.SYSTEM_ADMINISTRATOR
+        // 🔐 El propio servicio determina el rol
+        const user = await this.auth.registerSystemAdministrator(
+            dto,
+        );
+
+        // ============================================================
+        // 📥 RESPUESTA
+        // ============================================================
+
+        return{
+            success: true,
+            message : 'System Administrator registrado con éxito',
+            data : user,
+        };
+
+
+    }
+
+
+
+    // ============================================================
+    // 🛡️ REGISTRAR ADMINISTRADOR
+    // ============================================================
+
+
+
+    // ✅ Endpoint encargado de registrar un nuevo ADMINISTRATOR
+    //
+    // 🔐 Pueden acceder: 
+    // 👑 SYSTEM_ADMINISTRATOR
+    // 🛡️ ADMINISTRATOR
+    //
+    // ⭐️ IMPORTANTE:
+    // 👉 El frontend NO envía roleName
+    // 👉 Esta ruta siempre crea un ADMINISTRATOR
+    //
+    // 🏫 El origen del schoolId depende de quién realiza el registro:
+    //
+    // 👑 SYSTEM_ADMINISTRATOR
+    // 👉 Puede seleccionar el colegio desde el formulario
+    //
+    // 🛡️ ADMINISTRATOR
+    // 👉 NO puede seleccionar libremente otro colegio
+    // 👉 Se utiliza directamente el schoolId almacenado en su JWT
+    @Roles(
+        // 👑 EL SYSTEM_ADMINISTRATOR puede registrar administradores
+        RoleName.SYSTEM_ADMINISTRATOR,
+
+        // 🛡️ Un ADMINISTRATOR también puede registrar otros administradores
         RoleName.ADMINISTRATOR)
-    @Post('register') // 🚀 Definimos la ruta POST /auth/register
-    @HttpCode(HttpStatus.CREATED) // ✅ Si todo sale bien, la respuesta HTTP será 201 Created
-    // 🧩 Método encargado de registrar nuevos usuarios.
-    // 👉 Si quién registra es un ADMINISTRATOR, el colegio se obtiene automáticamente desde el JWT.
-    // 👉 Si quién registra es un SYSTEM_ADMINISTRATOR, el colegio puede venir desde el DTO o no existir, dependiendo del tipo de usuario que se esté creando.
+    @Post('register/administrator') // 🚀 Definimos la ruta POST /auth/register
+    // ✅ Indicamos que, si el registro se realiza correctamente, responderemos con HTTP 201 Created
+    @HttpCode(HttpStatus.CREATED) 
+    // 🧩 Método del Controller encargado específicamente de registrar nuevos administradores
     async register(
-        // 📥 Obtiene el body de la petición HTTP
-        // 👉 NestJS transforma automáticamente el JSON recibido en una instancia de RegisterDto
-        @Body() dto : RegisterDto,
-        // 🔐 Obtiene un objeto Request de Express
-        // 👉 Gracias a JwtAuthGuard y JwtStrategy, aquí ya existe req.user
-        // 👉 req.user contiene el payload validado del JWT
+        // 📥 Datos del nuevo administrator
+        @Body() dto : CreateAdministratorDto, 
+
+        // 🔐 Petición autenticado
+        // 👉 req.user contiene la información extraída del JWT
         @Req() req : AuthRequest    
     ){
 
-        // 📌 En este punto:
-        // ✅ El JWT ya fue validado
-        // ✅ req.user contiene el payload del token
-        // ✅ Ya sabemos qué rol tiene el usuario autenticado
+        // ============================================================
+        // 🏫 DETERMINAR COLEGIO
+        // ============================================================
 
-        // 🏫 Variable que almacenará el colegio al que pertenecerá el nuevo usuario
-        // 👉 Su origen depende del rol del usuario autenticado
-        let schoolId : string | undefined;
+        // 🏫 Aquí almacenaremos el colegio que finalmente será enviado al servicio
+        let schoolId: string;
+
+ 
         
-        // =====================================
-        // 👑 Si el usuario autenticado es SYSTEM_ADMINISTRATOR
-        // =====================================
-        // 👉 El System Administrator NO pertenece a ningún colegio, por lo tanto su JWT nunca contiene schoolId
-        
-        // 👉 El comportamiento depende del tipo de usuario que va a crear:
-        // 🔹 Si SYSTEM_ADMINISTRATOR crea un ADMINISTRATOR: el schoolId debe enviarse en el DTO 
-        // 🔹 Si SYSTEM_ADMINISTRATOR crea otro SYSTEM_ADMINISTRATOR, no existe schoolId porque ese usuario tampoco pertenece a ningún colegio
-        
+        // ============================================================
+        // 👑  CASO 1 : REGISTRA SYSTEM_ADMINISTRATOR
+        // ============================================================
+
+
+        // 👑 Comprobamos si quien está realizando la petición es un SYSTEM_ADMINISTRATOR
+        if(
+            req.user.roleName === RoleName.SYSTEM_ADMINISTRATOR
+        ){
+
+            // 👑 El SYSTEM_ADMINISTRATOR no pertenece personalmente a ningún colegio
+            // 👉 Por eso, necesita seleccioanr desde el frontend el colegio donde será creado el nuevo ADMINISTRATOR
+
+            // ❌ Verificamos que el SYSTEM_ADMINISTRATOR realmente haya seleccionado un colegio
+            if(!dto.schoolId){
+
+                // 🚨 Si no existe schoolId, la petición está incompleta
+                throw new BadRequestException(
+                    // 📥 Mensaje enviado al frontend
+                    'Debe indicar el colegio (schoolId).'
+                )
+            }
+
+            // 🔹 Guardamos el ID del colegio seleccionado por el SYSTEM_ADMINISTRATOR
+            // 🔥 Ejemplo:
+            // 🔹 dto.schoolId = "c5fd365c-a158-4e33-a734-cbf30781dbc9"
+            // 👉 Entonces : 
+            // 🔹 schoolId = "c5fd365c-a158-4e33-a734-cbf30781dbc9"
+            schoolId = dto.schoolId
+
+        }
+
+            // =====================================
+            // 🛡️ CASO 2 : REGISTRA ADMINISTRATOR
+            // =====================================
+
+            // 🔹 Comprobamos EXPLÍCITAMENTE que el usuario autenticado tenga el rol ADMINISTRATOR
+            // 👉 Antes utilizábamos simplemente "else"
+            // 🔹 Ahora dejamos claro que este bloque solamente pertenece al rol ADMINISTRATOR
+            else if (req.user.roleName === RoleName.ADMINISTRATOR){
+                
+                // 🛡️ Un ADMINISTRATOR solamente puede crear administradores dentro de su propio colegio 
+                // ❌ No utilizamos: dto.schoolId
+                // ✅ Utilizamos   : req.user.schoolId
+                // 
+                // 🔐 De esta manera el cliente no puede modificar manualmente el ID e intentar registrar administradores
+                //    para otro colegio
+                //
+                // ❌ Verificamos que el administrador autenticado realmente tenga un schoolId dentro de su JWT
+                if(!req.user.schoolId){
+
+                    // 🚨 Si no tiene colegio, no debería poder registrar administradores
+                    throw new ForbiddenException(
+                        // 📥  Mensaje enviado al frontend
+                        'El administrador no pertenece a ningún colegio'
+                    );
+                }
+
+                // ✅ Obtenemos el colegio directamente desde el usuario autenticado
+                // 👉 Este schoolId fue obtenido previamente desde el JWT validado por el backend
+                // 🔥 Por ejemplo: 
+                // 🔹 req.user.schoolId = "abc-123"
+                // 👉 Entonces
+                // 🔹 schoolId = "abc-123"
+                schoolId = req.user.schoolId;
+            }
+
+
+
+            // =====================================
+            // 🚫 PROTECCIÓN ADICIONAL
+            // =====================================
+
+            // 🔐 En condiciones normales nunca debería entrar aquí, porque @Roles ya protege la ruta 
+            // 👉 Sin embargo, dejamos una segunda protección
+            else{
+
+                // 🚫 Bloqueamos cualquier rol inesperado
+                throw new ForbiddenException(
+                    // 📥 Mensaje enviado al cliente
+                    'No tienes permisos para registrar administradores'
+                );
+            }
+
+            // =====================================
+            // 🚀 REGISTRAR ADMINISTRATOR
+            // =====================================
+
+
+            // 🛡️ Ahora llamamos directamente a: registerAdministrator(dto, schoolId)
+            // 👉 El servicio sabe automáticamente que debe crear un ADMINISTRATOR
+            const user = await this.auth.registerAdministrator(
+
+                // 📦 Datos enviados en el body
+                dto,
+  
+                // 🏫 Colegio al cual pertenecerá el nuevo administrador
+                // 👑 Si registró SYSTEM_ADMINISTRATOR: viene del DTO
+                // 🛡️ Si registró ADMINISTRATOR: viene del JWT
+                schoolId
+            )
+
+            
+            // =====================================
+            // 📥 RESPUESTA
+            // =====================================
+
+            // ↩️ Retornamos la respuesta al frontend
+            return{
+
+                // ✅ Indicamos que la operación terminó correctamente
+                success: true,
+                // 👉 Sabemos de antemano que esta ruta únicamente registra administradores
+                mssage: 'Administrador registrado con éxito',
+                // 📦 Retornamos la información del usuario creado por el servicio
+                data : user,
+            };
+
+
+
+
+
+
+
+
+
+ 
         
         /* DTO DE SYSTEM_ADMINISTRATOR PARA CREAR UN ADMINISTRADOR  |   DTO DE SYSTEM_ADMINISTRATOR PARA CREAR OTRO SYSTEM ADMINISTRATOR       
             {                                                               {   
@@ -154,67 +352,8 @@ export class AuthController {
                 }
             }
         */
-        if(req.user.roleName === RoleName.SYSTEM_ADMINISTRATOR){
-            // 👑 Si crea otro SYSTEM_ADMINISTRATOR, no pertenece a ningún colegio
-            if(dto.roleName === RoleName.SYSTEM_ADMINISTRATOR){
-                // ✅ Los System Administrator nunca pertenecen a un colegio
-                schoolId = undefined;
-            }
-
-            // 🏫 Si crea un ADMINISTRATOR, debe indicar el colegio
-            else if(dto.roleName === RoleName.ADMINISTRATOR){
-                if(!dto.schoolId){
-                    throw new BadRequestException(
-                        'Debe indicar el colegio (schoolId).'
-                    );
-                }
-                schoolId = dto.schoolId
-            }else{
-                throw new ForbiddenException(
-                    'Rol no permitido'
-                );
-            }
-            
-             
-        } 
-
-        // =====================================
-        // 🏫 Si el usuario autenticado es ADMINISTRATOR
-        // =====================================
-        // 👉 Siempre registra usuarios dentro de su propio colegio
-        // 👉 El schoolId se obtiene del JWT
-        else{
-            if(!req.user.schoolId){
-                throw new ForbiddenException(
-                    'El administrador no pertenece a ningún colegio'
-                );
-            }
-
-            schoolId = req.user.schoolId;
-        }
-
-        // 🚀 Registramos el usuario
-        const user = await this.auth.register(
-            dto,
-            schoolId
-        ); // ✅ Guardado (o rollback si falla)
-
-        const messages : Record<RoleName, string> = {
-            [RoleName.STUDENT] : 'Estudiante registrado con éxito',
-            [RoleName.ADMINISTRATOR] : 'Administrador registrado con éxito',
-            [RoleName.SYSTEM_ADMINISTRATOR] : 'System Administrator registrado con éxito',
-            [RoleName.GUARDIAN] : 'Apoderado registrado con éxito',
-            [RoleName.TEACHER] : 'Profesor registrado con éxito',
-        };
-
-        const message = messages[dto.roleName] ?? 'Usuario registrado con éxito'
-
-        // ↩️ Retornamos una respuesta personalizada
-        return{
-            success : true, // ✅ Indicamos que la operación fue exitosa
-            message, // 📨 Mensaje dinámico según el rol
-            data : user, // 📦 Datos del usuario creado
-        };
+ 
+ 
     }
 
     
