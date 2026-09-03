@@ -12,7 +12,6 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 // ✅ Importamos bcrypt para comparar contraseñas en texto plano vs hash
 import * as bcrypt from 'bcrypt'
-import { RegisterDto } from 'src/users/dto/register.dto';
 import { DataSource, EntityManager, QueryFailedError} from 'typeorm';
 import { Rol, RoleStatus } from 'src/entities/rol.entity'; 
 import { Student } from 'src/entities/student.entity';

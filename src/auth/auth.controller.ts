@@ -15,16 +15,13 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 // 🔹 Importamos la interfaz del shape de la respuesta.
 //.   Esto da autocompletado y garantiza que devolvemos siempre la misma estructura.
-import { LoginResponse } from './interfaces/login-response.interface';
-import { RegisterDto } from 'src/users/dto/register.dto';
+import { LoginResponse } from './interfaces/login-response.interface'; 
 import { Public } from 'src/common/decorators/public.decorator';
 import { MenuService } from 'src/common/services/menu.service';
-import { RoleName } from 'src/entities/users.entity';
-import { use } from 'passport';
+import { RoleName } from 'src/entities/users.entity'; 
 import { Roles } from 'src/common/decorators/roles.decorator';
 import type { AuthRequest } from 'src/common/interfaces/auth-request-interface';
-import { AuthUser } from './interfaces/auth-user.interface';
-import { JwtPayload } from './types/jwt-payload-type';
+import { AuthUser } from './interfaces/auth-user.interface'; 
 import { CreateSystemAdministratorDto } from 'src/users/dto/create-system-administrator.dto';
 import { CreateAdministratorDto } from 'src/users/dto/create-administrator.dto';
 

@@ -61,8 +61,7 @@ export class UsersService {
                 lastName ,  // 👤 Apellido
                 password ,  // 🔑 Contraseña en texto plano 
                 phone ,     // 📱 Teléfono
-                avatarUrl, // 🖼️ Avatar
-                //roleId,    // 🧩 Viene SIEMPRE desde AuthService (rol real en BD)
+                avatarUrl, // 🖼️ Avatar 
             } = dto;
 
             // 2️⃣ Validación de negocio: roleId debe venir sí o sí 

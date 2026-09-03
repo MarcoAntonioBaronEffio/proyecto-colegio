@@ -6,15 +6,12 @@ POST -> https://proyecto-colegio-production.up.railway.app/api/auth/register
 ➡️ petición:
 
 {
-    "email": "systemadmin2@admin.com",
+    "email": "systemadmin22@admin.com",
     "password": "12345678",
-    "firstName": "Marco Antonio",
-    "lastName" : "Barón Effio",
-    "roleName" : "SYSTEM_ADMINISTRATOR",
-    "systemAdministrator": {
-        "documentType" : "DNI",
-        "documentNumber": "12345678"
-    }
+    "firstName": "Marco Tony",
+    "lastName": "Barón Effio",
+    "documentType": "DNI",
+    "documentNumber": "12345672"
 }
 
 ⬅️ respuesta:
@@ -23,18 +20,18 @@ POST -> https://proyecto-colegio-production.up.railway.app/api/auth/register
     "success": true,
     "message": "System Administrator registrado con éxito",
     "data": {
-        "id": "e54db3f8-bd18-499c-a679-6269444a8c4e",
-        "email": "systemadmin@admin.com",
-        "firstName": "Marco Antonio",
+        "id": "7fda0179-fae5-4ffe-854b-e63981a2ded0",
+        "email": "systemadmin22@admin.com",
+        "firstName": "Marco Tony",
         "lastName": "Barón Effio",
         "role": {
-            "id": "e707fdcf-d0fa-40b7-a5c8-9c89ffb576c3"
+            "id": "7e9ae337-1fca-4b6a-8ed5-30ee50a41c26"
         },
         "phone": null,
         "address": null,
         "avatarUrl": null,
         "status": "ACTIVE",
-        "createdAt": "2026-06-24T06:48:43.578Z",
-        "updatedAt": "2026-06-24T06:48:43.578Z"
+        "createdAt": "2026-08-30T22:47:01.145Z",
+        "updatedAt": "2026-08-30T22:47:01.145Z"
     }
 }
